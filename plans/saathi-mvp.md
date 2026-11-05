@@ -83,7 +83,7 @@ audit_events                #NEW  id, ts, actor, type, payload, prev_hash, hash
 
 Azure AI Search
 
-index: policy_chunks        #NEW  chunk_id, doc, clause_id, version, product, text, entities, vector
+index: policy_chunks        #NEW  chunk_id, parent_id, doc, text, entities, vector
 ├── indexer (Blob)          #WRITE   built from PDFs by the skillset (OCR, merge, split, entity recognition of amounts and periods, embed)
 └── search.py               #READ    hybrid + semantic query
 
@@ -112,7 +112,7 @@ saathi-from-scratch/
 ├── api/
 │   ├── pyproject.toml                 #NEW — ruff config
 │   ├── requirements.txt               #NEW — deps for App Service
-│   ├── startup.sh                     #NEW — uvicorn start command
+│   ├── startup.sh                     #NEW — installs the ODBC driver, then starts uvicorn
 │   └── app/
 │       ├── main.py                    #NEW — app factory, router wiring, error shape
 │       ├── config.py                  #NEW — typed settings, one place
@@ -133,12 +133,26 @@ saathi-from-scratch/
 │       │   └── ai/                    #NEW — client.py (Azure calls), llm.py (Foundry), search.py (AI Search)
 │       └── orchestrator/              #NEW — pipeline.py (step order), tools.py (search_knowledge_base)
 ├── web/
-│   ├── Saathi.Web/
-│   │   ├── Pages/                     #NEW — Workspace, Supervisor
-│   │   ├── Components/                #NEW — chat, citation chips, draft card
-│   │   ├── Services/ApiClient.cs      #NEW — single typed API client
-│   │   ├── Program.cs                 #NEW — DI and config
-│   │   └── appsettings.json           #NEW — API URL
+│   └── Saathi.Web/
+│       ├── Saathi.Web.csproj          #NEW — .NET 10 Blazor Server project
+│       ├── Program.cs                 #NEW — reads API_URL, registers ApiClient and AuthState
+│       ├── appsettings.json           #NEW — logging only (API_URL comes from the environment)
+│       ├── App.razor                  #NEW — the HTML page, interactive server mode without prerendering
+│       ├── Routes.razor               #NEW — URL to page
+│       ├── _Imports.razor             #NEW — shared namespaces
+│       ├── Layout/                    #NEW — MainLayout.razor (title bar, log out)
+│       ├── Pages/
+│       │   ├── Login/                 #NEW — LoginPage.razor
+│       │   ├── Workspace/             #NEW — WorkspacePage.razor (the agent screen)
+│       │   └── Supervisor/            #NEW — SupervisorPage.razor (polls every 5 seconds)
+│       ├── Components/
+│       │   ├── ApiComponent.cs        #NEW — base class: runs an API call and keeps its error
+│       │   ├── Customers/             #NEW — CustomerList.razor, RadarPanel.razor
+│       │   ├── Chat/                  #NEW — ChatPanel.razor (with citation chips)
+│       │   ├── Drafts/                #NEW — DraftCard.razor
+│       │   └── Supervisor/            #NEW — PendingDrafts.razor, AuditPanel.razor, UsagePanel.razor
+│       ├── Services/                  #NEW — ApiClient.cs (every API call), AuthState.cs, ApiModels.cs
+│       └── wwwroot/                   #NEW — app.css
 ├── ml/
 │   ├── requirements.txt               #NEW — scikit-learn, joblib, azure-ai-ml (pinned to match the endpoints)
 │   ├── intent/                        #NEW — train.py, score.py
@@ -164,12 +178,12 @@ saathi-from-scratch/
 │   │   └── modules/                   #NEW — one file per service
 │   └── params/
 │       └── parameters.json            #NEW — names, SKUs, region
-├── scripts/                           #NEW — live smoke test, teardown
+├── scripts/                           #NEW — smoke_test.sh (post-deploy check), teardown.sh (delete everything)
 ├── public/
 │   └── architecture.png               #REUSED — already committed; README architecture image
 ├── .github/workflows/
-│   ├── ci.yml                         #NEW — PRs to main: lint, tests
-│   └── cd.yml                         #NEW — merge: test, zip deploy, smoke test
+│   ├── ci.yml                         #NEW — PRs to main: ruff, dotnet build, secret scan (no tests)
+│   └── cd.yml                         #NEW — merge or manual run: zip deploy API and web, then smoke check
 └── plans/
     └── saathi-mvp.md                  #NEW — this plan
 ```
@@ -198,6 +212,7 @@ All routes are `#NEW`; none are removed. Every error returns `{"error": {"code",
 Phase 2 notes: `GET /drafts` requires the `status` query parameter. `POST /drafts` takes only `customer_id` until Phase 4 uses `session_id` for LLM context, and until then draft text comes from a fixed template. A supervisor may open any customer. Customer list and detail calls are audited as `customer_viewed`.
 
 Phase 3 and 4 notes:
+- Clause ids start with their product (`HEALTH-`, `MOTOR-`, `TERM-`). The product limit is applied in `search.py` after the search returns, before anything reaches the model.
 - The pipeline is plain Python in a fixed order, not Semantic Kernel. `tools.py` defines `search_knowledge_base` with an MCP-style JSON schema, an allowlist and a limit of 3 calls per request; a Semantic Kernel or MCP wrapper can be added later.
 - An agent question with the intent `other` (a greeting) gets a fixed reply and skips search and GPT.
 - A blocked question or answer returns `blocked: true` with a reason and is audited as `chat_blocked`. Blocked turns are not remembered. A failed Azure call is audited as `chat_failed` and returns 503.
@@ -297,8 +312,8 @@ Verification is part of each phase; there is no separate verification phase.
 | Phase 2 — API core | config, models, repos, auth, audit, policy, memory, and the health, auth, customers, drafts and audit routers | Phase 1 | App imports and serves the routes in the plan; engineer runs the smoke cases that apply |
 | Phase 3 — ML | Intent classifier and Radar trained, scoring code, Azure ML deploy scripts | Phase 1 | Scoring code returns the agreed fields; endpoints answer a sample request |
 | Phase 4 — AI pipeline | llm, search, safety, intent/radar clients, orchestrator, MCP tools, chat and radar routers | Phases 2 and 3 | Injection and grounding cases are blocked in the smoke path |
-| Phase 5 — Web UI | Blazor workspace and supervisor console, `ApiClient` | Phase 4 | UI works against the API in the smoke path |
-| Phase 6 — CI/CD | `ci.yml`, `cd.yml`, smoke script, README | Phase 4 | CI green on a PR; CD deploys to App Service |
+| Phase 5 — Web UI | Blazor login, agent workspace (customers, radar, chat, drafts) and supervisor console, one `ApiClient` | Phase 4 | `dotnet build` passes; UI works against the API in the smoke path |
+| Phase 6 — CI/CD | `ci.yml`, `cd.yml`, `smoke_test.sh`, `teardown.sh`, ODBC install in `startup.sh` | Phase 4 | CI green on a PR; CD deploys to App Service and the smoke check passes |
 
 ## Agent orchestration
 
@@ -352,9 +367,11 @@ Subagent boundaries: each owns only its folders (listed above) and hands back th
 **Known limitations** (built so far, phases 1 to 4)
 
 *Not verified yet*
+- The Blazor UI has never been compiled or run: `dotnet` was not available when it was written. The first `dotnet build` is the CI job, so expect small fixes.
+- The CI and CD workflows have never run on GitHub. CD fails until the secrets `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_API` and `AZURE_WEBAPP_NAME_WEB` exist and `make deploy-infra` has created the resources.
 - Nothing has run against real Azure: SQL, Foundry, AI Search and Azure ML. The Bicep has never been compiled or deployed, and the Azure ML register and deploy scripts are unverified.
-- The AI Search indexer is assumed to expose blob metadata (`clause_id`, `product`, `version`) at `/document/<key>`. If it does not, search results are rejected with a 503.
-- The ODBC Driver 18 for SQL Server must be installed on whatever runs the API. `startup.sh` does not install it, so App Service needs it added (Phase 6).
+- The API reads a search result's clause id and product from its file name (`health-silver-01.pdf` is clause `HEALTH-SILVER-01`, product `health`) and its version from the `(v1)` in the clause text. A new clause PDF must follow that naming, or its results are rejected with a 503. This needs only the file name and text, which the indexer always provides.
+- `startup.sh` installs the ODBC Driver 18 for SQL Server on every cold start. This assumes the App Service image is Debian with `apt-get` and network access, and it has not been tried on a real App Service.
 - The human E2E smoke path has not been run.
 
 *Security*
@@ -371,6 +388,10 @@ Subagent boundaries: each owns only its folders (listed above) and hands back th
 - A chat asking to "draft a reminder" goes through search and is usually blocked; the agent should use the draft button.
 - Sending a draft and logging it are two separate commits, so a crash between them leaves a sent draft with no audit row.
 
+*Behavior of the UI*
+- A page refresh logs the user out. The supervisor screen polls every 5 seconds, so it reloads all three panels each time.
+- Phase 5 has no screen for one customer's policies or interaction history, and no way to open an old session.
+
 *Scale*
 - Customer lists run one policy query per customer, `/audit` returns the newest 200 events, and `load_sql.py` only works on a fresh database. Fine at demo scale.
 
@@ -384,6 +405,8 @@ Subagent boundaries: each owns only its folders (listed above) and hands back th
 - Login with a signed token for seeded demo agents (no Entra ID).
 - Supervisor console polls (no SignalR).
 - Client code lives in `Saathi.Web` as one `ApiClient`.
+- The UI is Blazor Server with one `AuthState` per browser session, so a page refresh logs the user out. The token never reaches the browser.
+- The web App Service has WebSockets on, and the API startup runs as `bash startup.sh`.
 - Every Azure service has a mock selected by an env var.
 - Audit log is append-only and hash-chained.
 - Smoke testing is human-only.

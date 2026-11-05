@@ -102,7 +102,13 @@ saathi-from-scratch/
 │       │   └── ai/               calls to GPT and AI Search
 │       └── orchestrator/         the question's journey, and the search tool
 │
-├── web/                          .NET Blazor screens (phase 5, not built yet)
+├── web/Saathi.Web/               .NET Blazor screens
+│   ├── Program.cs                reads API_URL, registers the API client and login state
+│   ├── Layout/                   title bar, log out
+│   ├── Pages/                    login, agent workspace, supervisor screen
+│   ├── Components/               chat, customers, radar, drafts, supervisor panels
+│   ├── Services/                 ApiClient.cs (every API call), login state, API shapes
+│   └── wwwroot/                  styles
 │
 ├── ml/                           the two predictions
 │   ├── requirements.txt
@@ -132,23 +138,23 @@ saathi-from-scratch/
 │   └── params/
 │       └── parameters.json       names, model versions, region
 │
-├── scripts/                      live smoke test and teardown (phase 6, not built yet)
+├── scripts/                      smoke_test.sh (check a deploy), teardown.sh (delete everything)
 ├── public/                       images used in this README
 ├── plans/                        the approved plan
-└── .github/                      CI and deploy pipelines (phase 6, not built yet)
+└── .github/workflows/            ci.yml (checks on PRs), cd.yml (deploy on merge)
 ```
 
 | Folder | What it is responsible for |
 |---|---|
 | `api/` | The brain. Checks who is logged in, runs the question through safety, search and GPT, saves drafts and the audit log. Grouped by feature: access, customers, drafts, chat. |
-| `web/` | What the agent sees. Chat, customer list, drafts, and the supervisor screen. It only shows things; it makes no decisions. |
+| `web/` | What the agent sees. Login, chat with citations, customers, the radar, drafts, and the supervisor screen. It only shows things; every decision is made by the API. |
 | `ml/` | The two predictions: what the agent is asking about (intent), and who is likely to renew (Renewal Radar). Trains them and puts them on Azure ML. |
 | `data/` | The fake customers, policies and policy PDFs, and the scripts that put them into Azure SQL, Blob and Search. |
 | `infra/` | Creates every Azure service from code, so the whole setup can be rebuilt or deleted in one command. |
-| `scripts/` | Small helpers: check that the live site works, and tear everything down. |
+| `scripts/` | Two helpers: check that a deployed site works, and delete everything after the demo. |
 | `public/` | Pictures only. |
 | `plans/` | The plan we agreed before writing code. |
-| `.github/` | Runs checks on every pull request and deploys on merge. |
+| `.github/` | `ci.yml` lints the Python, builds the UI and scans for secrets on every pull request. `cd.yml` deploys to Azure when the api, web or scripts change on `main`. |
 
 ## 6. How to set it up
 
@@ -192,7 +198,34 @@ cd api
 uvicorn app.main:app --env-file ../.env
 ```
 
-Open http://localhost:8000/docs to see every route. The UI comes with phase 5.
+Open http://localhost:8000/docs to see every route.
+
+### Run the web UI
+
+```bash
+cd web/Saathi.Web
+API_URL=http://localhost:8000 dotnet run      # needs the .NET 10 SDK
+```
+
+Open the address it prints, then log in as `A-01` (agent) or `A-00` (supervisor) with the passcode `saathi-demo`.
+
+### Deploy with GitHub Actions
+
+Run `make deploy-infra` and `make seed` once, then add three GitHub secrets (Settings, Secrets and variables, Actions):
+
+| Secret | Value |
+|---|---|
+| `AZURE_CREDENTIALS` | the JSON from `az ad sp create-for-rbac --name saathi-cd --role contributor --scopes /subscriptions/<id>/resourceGroups/saathi-from-scratch-rg --sdk-auth` |
+| `AZURE_WEBAPP_NAME_API` | the API app's name (the `apiUrl` output of the deploy, without `https://` and `.azurewebsites.net`) |
+| `AZURE_WEBAPP_NAME_WEB` | the web app's name (same, from `webUrl`) |
+
+After that, `cd.yml` deploys on every merge that touches `api/`, `web/` or `scripts/`, and can also be run by hand from the Actions tab. Until the secrets exist, CD fails.
+
+### Delete everything after the demo
+
+```bash
+scripts/teardown.sh saathi-from-scratch-rg    # asks you to type the group name first
+```
 
 ## 7. Environment variables
 
