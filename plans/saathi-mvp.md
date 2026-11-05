@@ -164,8 +164,9 @@ saathi-from-scratch/
 │   ├── modules/                       #NEW — one file per service
 │   └── parameters.json                #NEW — names, SKUs, region
 ├── scripts/                           #NEW — live smoke test, teardown
-├── docs/
-│   └── architecture.png               #REUSED — already committed; plus runbook, cost report #NEW
+├── public/
+│   └── architecture.png               #REUSED — already committed; README architecture image
+├── docs/                              #NEW — runbook, cost report
 ├── .github/workflows/
 │   ├── ci.yml                         #NEW — PRs to main: lint, tests
 │   └── cd.yml                         #NEW — merge: test, zip deploy, smoke test

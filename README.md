@@ -2,4 +2,4 @@
 
 Simple, but reliable.
 
-![Saathi architecture](docs/architecture.png)
+![Saathi architecture](public/architecture.png)
