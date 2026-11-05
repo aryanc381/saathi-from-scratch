@@ -1,0 +1,76 @@
+@* Responsible for the renewal draft of one customer: create it, approve it, then send it (simulated). *@
+@inherits ApiComponent
+
+<h3>Renewal draft</h3>
+<button @onclick="Create">Draft renewal reminder</button>
+@if (Error is not null)
+{
+    <p class="error">@Error</p>
+}
+@if (draft is not null)
+{
+    <div class="card">
+        <p>@draft.Text</p>
+        @foreach (var citation in draft.Citations)
+        {
+            <span class="chip" title="@citation.SourceId">@citation.ClauseId</span>
+        }
+        <p>Status: @draft.Status</p>
+        @if (draft.Status == "PENDING")
+        {
+            <button @onclick="Approve">Approve</button>
+        }
+        @if (draft.Status == "APPROVED")
+        {
+            <button @onclick="Send">Send</button>
+        }
+        @if (draft.Status == "SENT")
+        {
+            <p class="ok">Sent (simulated)</p>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string CustomerId { get; set; } = default!;
+
+    private Draft? draft;
+    private string? shownFor;
+
+    // Clears the draft whenever the agent picks a different customer.
+    protected override void OnParametersSet()
+    {
+        if (CustomerId != shownFor)
+        {
+            shownFor = CustomerId;
+            draft = null;
+        }
+    }
+
+    // Creates a pending draft for the customer.
+    private async Task Create()
+    {
+        await Run(async () => draft = await Api.CreateDraft(CustomerId));
+    }
+
+    // Approves the pending draft.
+    private async Task Approve()
+    {
+        await Run(async () =>
+        {
+            await Api.ApproveDraft(draft!.DraftId);
+            draft = draft with { Status = "APPROVED" };
+        });
+    }
+
+    // Sends the approved draft. The API refuses it when the customer has not given consent.
+    private async Task Send()
+    {
+        await Run(async () =>
+        {
+            await Api.SendDraft(draft!.DraftId);
+            draft = draft with { Status = "SENT" };
+        });
+    }
+}

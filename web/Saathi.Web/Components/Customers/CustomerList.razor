@@ -1,0 +1,32 @@
+@* Responsible for listing the customers the agent may see, and telling the page which one was picked. *@
+@inherits ApiComponent
+
+<h3>Customers</h3>
+@if (Error is not null)
+{
+    <p class="error">@Error</p>
+}
+@foreach (var customer in customers)
+{
+    <button class="item" @onclick="() => OnPicked.InvokeAsync(customer.CustomerId)">
+        <span>@customer.Name</span>
+        <small>@customer.RenewalStatus</small>
+        @if (!customer.Consent)
+        {
+            <small class="warn">no consent</small>
+        }
+    </button>
+}
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnPicked { get; set; }
+
+    private List<CustomerListItem> customers = [];
+
+    // Loads the customers once, when the component appears.
+    protected override async Task OnInitializedAsync()
+    {
+        await Run(async () => customers = await Api.GetCustomers());
+    }
+}

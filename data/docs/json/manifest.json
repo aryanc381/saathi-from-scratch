@@ -96,8 +96,8 @@
     "text": "A lapsed term policy can be revived within 24 months of the first unpaid premium by paying all dues with interest and submitting health proof."
   },
   {
-    "file": "renewal-rule-01.pdf",
-    "clause_id": "RENEWAL-RULE-01",
+    "file": "health-renewal-01.pdf",
+    "clause_id": "HEALTH-RENEWAL-01",
     "product": "health",
     "version": "v1",
     "title": "Renewal and grace rules",

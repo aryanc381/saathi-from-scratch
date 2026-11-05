@@ -1,0 +1,56 @@
+@* Responsible for showing the audit log and checking that its hash chain is intact. *@
+@inherits ApiComponent
+
+<h3>Audit log</h3>
+<button @onclick="Verify">Verify chain</button>
+@if (result is not null)
+{
+    <p class="@(result.Valid ? "ok" : "error")">@Describe(result)</p>
+}
+@if (Error is not null)
+{
+    <p class="error">@Error</p>
+}
+<table>
+    <tr><th>#</th><th>Time</th><th>Actor</th><th>Type</th><th>Payload</th></tr>
+    @foreach (var entry in events)
+    {
+        <tr>
+            <td>@entry.Id</td>
+            <td>@entry.Ts</td>
+            <td>@entry.Actor</td>
+            <td>@entry.Type</td>
+            <td>@entry.Payload</td>
+        </tr>
+    }
+</table>
+
+@code {
+    [Parameter]
+    public int Tick { get; set; }
+
+    private List<AuditEvent> events = [];
+    private VerifyResult? result;
+
+    // Reloads the log each time the page ticks.
+    protected override async Task OnParametersSetAsync()
+    {
+        await Run(async () => events = await Api.GetAudit());
+    }
+
+    // Asks the API to check the whole chain.
+    private async Task Verify()
+    {
+        await Run(async () => result = await Api.VerifyAudit());
+    }
+
+    // Turns a check result into a sentence.
+    private static string Describe(VerifyResult check)
+    {
+        if (check.Valid)
+        {
+            return $"The chain is valid ({check.Count} events).";
+        }
+        return $"The chain is broken at event {check.BrokenAt}.";
+    }
+}

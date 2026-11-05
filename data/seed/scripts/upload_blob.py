@@ -1,8 +1,7 @@
-"""Responsible for uploading the policy-clause PDFs to Blob Storage with clause metadata.
+"""Responsible for uploading the policy-clause PDFs to Blob Storage.
 
 Run from the repo root: python data/seed/scripts/upload_blob.py
 Needs AZURE_STORAGE_CONNECTION_STRING. The 'policies' container is created by infra/bicep/modules/storage.bicep.
-The blob metadata (clause_id, product, version) is what the search indexer maps into the index.
 """
 import json
 import os
@@ -19,8 +18,7 @@ def upload_docs(container):
     manifest = json.loads((DOCS_DIR / "json" / "manifest.json").read_text(encoding="utf-8"))
     for entry in manifest:
         with (DOCS_DIR / "pdf" / entry["file"]).open("rb") as f:
-            container.upload_blob(name=entry["file"], data=f, overwrite=True,
-                                  metadata={"clause_id": entry["clause_id"], "product": entry["product"], "version": entry["version"]})
+            container.upload_blob(name=entry["file"], data=f, overwrite=True)
         print(f"uploaded {entry['file']}")
 
 

@@ -22,7 +22,7 @@ resource api 'Microsoft.Web/sites@2023-12-01' = {
     httpsOnly: true
     siteConfig: {
       linuxFxVersion: 'PYTHON|3.12'
-      appCommandLine: 'startup.sh'
+      appCommandLine: 'bash startup.sh'
       alwaysOn: true
     }
   }
@@ -38,6 +38,7 @@ resource web 'Microsoft.Web/sites@2023-12-01' = {
     siteConfig: {
       linuxFxVersion: 'DOTNETCORE|10.0'
       alwaysOn: true
+      webSocketsEnabled: true
     }
   }
 }

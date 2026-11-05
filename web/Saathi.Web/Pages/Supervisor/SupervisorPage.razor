@@ -1,0 +1,50 @@
+@* Responsible for the supervisor screen: pending drafts, the audit log and usage. It reloads every 5 seconds. *@
+@page "/supervisor"
+@implements IDisposable
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+@if (Auth.IsSupervisor)
+{
+    <div class="columns">
+        <section class="main">
+            <PendingDrafts Tick="tick" />
+            <AuditPanel Tick="tick" />
+        </section>
+        <section class="side">
+            <UsagePanel Tick="tick" />
+        </section>
+    </div>
+}
+
+@code {
+    private readonly PeriodicTimer timer = new(TimeSpan.FromSeconds(5));
+    private int tick;
+
+    // Sends anyone who is not a supervisor to the login page, otherwise starts the refresh timer.
+    protected override void OnInitialized()
+    {
+        if (!Auth.IsSupervisor)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+        _ = Poll();
+    }
+
+    // Every 5 seconds, changes tick so the panels reload.
+    private async Task Poll()
+    {
+        while (await timer.WaitForNextTickAsync())
+        {
+            tick++;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    // Stops the timer when the page is closed.
+    public void Dispose()
+    {
+        timer.Dispose();
+    }
+}

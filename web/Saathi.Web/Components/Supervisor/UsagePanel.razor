@@ -1,0 +1,30 @@
+@* Responsible for showing how much the assistant is used: chats, blocked questions and drafts per status. *@
+@inherits ApiComponent
+
+<h3>Usage</h3>
+@if (Error is not null)
+{
+    <p class="error">@Error</p>
+}
+@if (usage is not null)
+{
+    <p>Chats: @usage.Chats</p>
+    <p>Blocked: @usage.Blocked</p>
+    @foreach (var pair in usage.DraftsByStatus)
+    {
+        <p>Drafts @pair.Key: @pair.Value</p>
+    }
+}
+
+@code {
+    [Parameter]
+    public int Tick { get; set; }
+
+    private Usage? usage;
+
+    // Reloads the counts each time the page ticks.
+    protected override async Task OnParametersSetAsync()
+    {
+        await Run(async () => usage = await Api.GetUsage());
+    }
+}

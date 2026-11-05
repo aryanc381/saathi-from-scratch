@@ -11,7 +11,7 @@
   {"question": "How long is the grace period for a term plan premium?", "expected_clause_ids": ["TERM-GRACE-01"]},
   {"question": "Can a new term policy be cancelled for a refund?", "expected_clause_ids": ["TERM-FREELOOK-01"]},
   {"question": "Can a lapsed term policy be revived?", "expected_clause_ids": ["TERM-REVIVAL-01"]},
-  {"question": "What happens if the renewal date is missed?", "expected_clause_ids": ["RENEWAL-RULE-01"]},
-  {"question": "Is a customer 20 days past the renewal date still renewable?", "expected_clause_ids": ["RENEWAL-RULE-01"]},
+  {"question": "What happens if the renewal date is missed?", "expected_clause_ids": ["HEALTH-RENEWAL-01"]},
+  {"question": "Is a customer 20 days past the renewal date still renewable?", "expected_clause_ids": ["HEALTH-RENEWAL-01"]},
   {"question": "Compare the Silver and Gold plans", "expected_clause_ids": ["HEALTH-SILVER-01", "HEALTH-GOLD-01"]}
 ]

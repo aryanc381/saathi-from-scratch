@@ -2,7 +2,7 @@
 import hashlib
 import hmac
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
@@ -38,7 +38,7 @@ def check_passcode(db: Connection, agent_id: str, passcode: str) -> Agent | None
 
 # Creates a signed login token that expires after TOKEN_HOURS.
 def make_token(agent: Agent, secret: str) -> str:
-    expires = datetime.now(timezone.utc) + timedelta(hours=TOKEN_HOURS)
+    expires = datetime.now(UTC) + timedelta(hours=TOKEN_HOURS)
     return jwt.encode({"sub": agent.agent_id, "exp": expires}, secret, algorithm="HS256")
 
 

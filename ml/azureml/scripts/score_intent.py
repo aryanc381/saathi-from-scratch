@@ -12,7 +12,7 @@ from pathlib import Path
 
 # The endpoint's code folder is ml/, so add it to the path to import intent.score.
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from intent.score import classify, load  # noqa: E402
+from intent.score import classify, load
 
 model = None
 
