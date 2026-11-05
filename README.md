@@ -1,5 +1,5 @@
-# saathi-from-scratch
+# Building Saathi from scratch in the simplest way
 
-Saathi: an insurance-agent copilot that finds information, drafts messages and supports customers with accurate, cited answers.
+Simple, but reliable.
 
 ![Saathi architecture](docs/architecture.png)
