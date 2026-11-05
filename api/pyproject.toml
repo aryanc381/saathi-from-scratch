@@ -1,0 +1,3 @@
+# Responsible for the lint settings of the Python API.
+[tool.ruff]
+line-length = 120

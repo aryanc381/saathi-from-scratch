@@ -79,7 +79,7 @@ saathi-from-scratch/
 ├── .env.example              every environment variable (names only)
 ├── .gitignore
 │
-├── api/                      Python backend (phases 2 and 4)
+├── api/                      Python backend (phase 2 built, phase 4 to come)
 ├── web/                      .NET Blazor screens (phase 5)
 ├── ml/                       Intent classifier and Renewal Radar (phase 3)
 │
@@ -144,7 +144,17 @@ Set `RG=saathi-from-scratch-rg` in `.env`. This project uses its own resource gr
 
 Before `make seed`, copy the connection strings and keys from the deployed resources into `.env`, and add your IP to the SQL firewall.
 
-Running the API and UI comes with phases 2 to 5.
+### Run the API
+
+Put `JWT_SECRET` and `SQL_CONNECTION_STRING` in `.env`. The machine also needs the ODBC Driver 18 for SQL Server.
+
+```bash
+pip install -r api/requirements.txt
+cd api
+uvicorn app.main:app --env-file ../.env
+```
+
+Open http://localhost:8000/docs to see every route. The UI comes with phase 5.
 
 ## 7. Environment variables
 
@@ -161,7 +171,7 @@ Names only live in [`.env.example`](.env.example). Real values stay in Key Vault
 | Azure ML | `RADAR_ENDPOINT_URL`, `RADAR_ENDPOINT_KEY`, `INTENT_ENDPOINT_URL`, `INTENT_ENDPOINT_KEY` |
 | Deploy only | `RG`, `SQL_ADMIN_PASSWORD`, plus GitHub secrets `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_API`, `AZURE_WEBAPP_NAME_WEB` |
 
-For local work, set `APP_ENV=local`, a `JWT_SECRET`, and the three mode switches to `mock` / `local`. No Azure needed.
+For local work, set `APP_ENV=local`, a `JWT_SECRET`, a `SQL_CONNECTION_STRING`, and the three mode switches to `mock` / `local`. The AI services (GPT, search, ML) are mocked, but the API always needs a SQL database.
 
 ## 8. End-to-end smoke tests
 

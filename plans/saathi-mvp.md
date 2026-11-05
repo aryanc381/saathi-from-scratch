@@ -98,6 +98,7 @@ Notes:
 - Consent lives on `customers` and gates sending only, not scoring or visibility.
 - Agent-to-customer ownership is the single `customers.agent_id` column.
 - Renewal status (ACTIVE, IN_GRACE, LAPSED) is computed in code from `renewal_date`, not stored.
+- Audit event types: `login`, `login_failed`, `customer_viewed`, `draft_created`, `draft_approved`, `draft_sent`, `send_blocked`; Phase 4 adds `chat` and `chat_blocked`, which `/usage` counts.
 
 ## 4. File tree
 
@@ -109,19 +110,20 @@ saathi-from-scratch/
 ├── .env.example                       #NEW — every env var, names only
 ├── Makefile                           #NEW — dev, test, seed, deploy shortcuts
 ├── api/
-│   ├── pyproject.toml                 #NEW — ruff + pytest config
+│   ├── pyproject.toml                 #NEW — ruff config
 │   ├── requirements.txt               #NEW — deps for App Service
 │   ├── startup.sh                     #NEW — uvicorn start command
 │   ├── app/
 │   │   ├── main.py                    #NEW — app factory, router wiring
 │   │   ├── config.py                  #NEW — typed settings, one place
 │   │   ├── deps.py                    #NEW — DI for services, current agent
-│   │   ├── models/                    #NEW — Pydantic request/response schemas
+│   │   ├── models/                    #NEW — Pydantic shapes: auth, customer, draft, audit, errors
 │   │   ├── routers/
-│   │   │   ├── chat.py                #NEW — POST /chat
+│   │   │   ├── auth.py                #NEW — POST /auth/login
+│   │   │   ├── chat.py                #NEW — POST /chat, GET /sessions/{id}
 │   │   │   ├── customers.py           #NEW — list/get owned customers
 │   │   │   ├── drafts.py              #NEW — create, approve, send
-│   │   │   ├── audit.py               #NEW — list, verify chain
+│   │   │   ├── audit.py               #NEW — list, verify chain, usage
 │   │   │   ├── radar.py               #NEW — renewal worklist
 │   │   │   └── health.py              #NEW — liveness for smoke test
 │   │   ├── orchestrator/
@@ -134,13 +136,10 @@ saathi-from-scratch/
 │   │   │   ├── radar.py               #NEW — Azure ML radar (+ local fallback)
 │   │   │   ├── memory.py              #NEW — last 6 turns + summary
 │   │   │   ├── safety.py              #NEW — injection filter, grounding check
-│   │   │   ├── policy.py              #NEW — approval + consent gates
+│   │   │   ├── policy.py              #NEW — renewal state, draft text, approval + consent gates
 │   │   │   ├── auth.py                #NEW — identity, role, product scope
 │   │   │   └── audit.py               #NEW — hash-chained append-only log
-│   │   └── repos/                     #NEW — SQL access: customers, drafts, sessions, audit
-│   └── tests/
-│       ├── unit/                      #NEW — safety, policy, audit, memory
-│       └── integration/               #NEW — full flow with mocked Azure
+│   │   └── repos/                     #NEW — SQL access: db helpers, agents, customers, sessions, drafts, audit
 ├── web/
 │   ├── Saathi.Web/
 │   │   ├── Pages/                     #NEW — Workspace, Supervisor
@@ -148,12 +147,10 @@ saathi-from-scratch/
 │   │   ├── Services/ApiClient.cs      #NEW — single typed API client
 │   │   ├── Program.cs                 #NEW — DI and config
 │   │   └── appsettings.json           #NEW — API URL
-│   └── Saathi.Web.Tests/              #NEW — client and component tests
 ├── ml/
 │   ├── intent/                        #NEW — train, score, metrics
 │   ├── radar/                         #NEW — features, train, score
 │   ├── azureml/                       #NEW — register + deploy endpoints
-│   └── tests/                         #NEW — scoring contract tests
 ├── data/
 │   ├── generate.py                    #NEW — seeded synthetic customers
 │   ├── requirements.txt               #NEW — packages for the data scripts
@@ -204,6 +201,8 @@ All routes are `#NEW`; none are removed. Every error returns `{"error": {"code",
 | GET | `/audit/verify` | supervisor | none | 200 `{valid, broken_at, count}` | 401, 403 |
 | GET | `/usage` | supervisor | none | 200 `{chats, blocked, drafts_by_status}` | 401, 403 |
 
+Phase 2 notes: `GET /drafts` requires the `status` query parameter. `POST /drafts` takes only `customer_id` until Phase 4 uses `session_id` for LLM context, and until then draft text comes from a fixed template. A supervisor may open any customer. Customer list and detail calls are audited as `customer_viewed`.
+
 Decisions: login checks the seeded demo agents' passcode hash and returns a signed token (no Entra ID). The supervisor console polls `/drafts`, `/audit` and `/usage` instead of using SignalR. 403 means wrong owner or role, 409 means the draft is in the wrong state, 503 means an Azure dependency failed.
 
 ## 6. Services and validation
@@ -232,11 +231,11 @@ Decisions: login checks the seeded demo agents' passcode hash and returns a sign
 - **Retrieved text:** chunks containing injection patterns are dropped before generation.
 - **Errors:** an Azure failure returns 503 and writes an audit event. The system never answers without sources.
 - **Logging:** names, phones and emails are redacted from logs; audit payloads store IDs, not raw personal data.
-- **Local mode:** each Azure service has a mock selected by an env var, so tests never call Azure.
+- **Local mode:** the AI services (LLM, search, ML) each have a mock selected by an env var. Azure SQL has no mock: the API always needs `SQL_CONNECTION_STRING`.
 
 ## 7. Environment variables
 
-The repo is public: `.env.example` lists names only; real values live in Key Vault or GitHub secrets. Local runs and tests need none of the Azure variables because every service has a mock. Minimum for local: `APP_ENV=local`, `JWT_SECRET`, and the three mode switches set to `mock` or `local`.
+The repo is public: `.env.example` lists names only; real values live in Key Vault or GitHub secrets. Local runs need no Azure AI variables because the AI services have mocks. The API always needs a SQL database. Minimum for local: `APP_ENV=local`, `JWT_SECRET`, `SQL_CONNECTION_STRING`, and the three mode switches set to `mock` or `local`.
 
 | Group | Variable | Purpose |
 |---|---|---|
@@ -291,10 +290,10 @@ Verification is part of each phase; there is no separate verification phase.
 | Phase | Outcome | Prerequisites | Verification |
 |---|---|---|---|
 | Phase 1 — Data + infra | `schema.sql`, seeded synthetic data, insurance PDFs, gold evaluation questions, Bicep for all Azure resources | none | Data seeds into SQL; `az deployment` validates; PDFs upload |
-| Phase 2 — API core | config, models, repos, auth, audit, policy, memory, customers/drafts/audit/health routers, running on mocks | Phase 1 | Unit and integration tests pass with mocks |
-| Phase 3 — ML | Intent classifier and Radar trained, scoring code, Azure ML deploy scripts | Phase 1 | Scoring contract tests pass; endpoints answer a sample request |
-| Phase 4 — AI pipeline | llm, search, safety, intent/radar clients, orchestrator, MCP tools, chat and radar routers | Phases 2 and 3 | Integration tests pass; injection and grounding cases blocked |
-| Phase 5 — Web UI | Blazor workspace and supervisor console, `ApiClient` | Phase 4 | Component tests pass; UI works against the API |
+| Phase 2 — API core | config, models, repos, auth, audit, policy, memory, and the health, auth, customers, drafts and audit routers | Phase 1 | App imports and serves the routes in the plan; engineer runs the smoke cases that apply |
+| Phase 3 — ML | Intent classifier and Radar trained, scoring code, Azure ML deploy scripts | Phase 1 | Scoring code returns the agreed fields; endpoints answer a sample request |
+| Phase 4 — AI pipeline | llm, search, safety, intent/radar clients, orchestrator, MCP tools, chat and radar routers | Phases 2 and 3 | Injection and grounding cases are blocked in the smoke path |
+| Phase 5 — Web UI | Blazor workspace and supervisor console, `ApiClient` | Phase 4 | UI works against the API in the smoke path |
 | Phase 6 — CI/CD + docs | `ci.yml`, `cd.yml`, smoke script, README, runbook, cost report | Phase 4 | CI green on a PR; CD deploys to App Service |
 
 ## Agent orchestration
@@ -394,3 +393,4 @@ These apply to every phase and are part of the quality audit before any PR.
 - **Reuse first:** use an existing function, model or component before adding a new one.
 - **Audit:** the quality audit checks every item above, and a failure blocks the PR.
 - **Folder layout:** inside a folder, files of different formats go in format subfolders (`json`, `csv`, `sql`, `scripts`, `pdf`, `bicep`).
+- **Tests:** the engineer owns all testing. The implementing agent does not write, change or run test files, so the tree has no `tests/` folders.
