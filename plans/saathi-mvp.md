@@ -349,6 +349,31 @@ Subagent boundaries: each owns only its folders (listed above) and hands back th
 - The repo is public. No secrets, keys or real data may be committed.
 - Azure ML endpoints bill while running. Mitigation: a teardown script, and delete the endpoints after the demo.
 
+**Known limitations** (built so far, phases 1 to 4)
+
+*Not verified yet*
+- Nothing has run against real Azure: SQL, Foundry, AI Search and Azure ML. The Bicep has never been compiled or deployed, and the Azure ML register and deploy scripts are unverified.
+- The AI Search indexer is assumed to expose blob metadata (`clause_id`, `product`, `version`) at `/document/<key>`. If it does not, search results are rejected with a 503.
+- The ODBC Driver 18 for SQL Server must be installed on whatever runs the API. `startup.sh` does not install it, so App Service needs it added (Phase 6).
+- The human E2E smoke path has not been run.
+
+*Security*
+- Passcodes are unsalted sha256, which is fine for synthetic demo agents but not for real credentials.
+- The audit chain is not keyed, so someone with database write access could rewrite the whole chain consistently. It also cannot detect removal of the newest rows.
+- There is no login rate limit, no per-agent rate limit on `/chat` (each call costs an LLM request), and tokens last 8 hours with no revocation.
+- Prompt-injection detection is a pattern list, a first line of defence next to the grounding check. Azure Search uses the admin key at runtime.
+
+*Behavior*
+- The grounding check is strict by design. An answer that does not end each sentence with a source tag is blocked, and a draft without the real renewal date is rejected. Real GPT may be refused more often than expected.
+- The pipeline is plain Python, not Semantic Kernel, and `tools.py` only has the MCP-style schema. Memory keeps the last 6 turns with no rolling summary.
+- `ML_PROVIDER=local` and `LLM_PROVIDER=mock` are stand-ins (word rules, a formula, a canned reply). The mock GPT answers from the first source, so a follow-up repeats the first answer. SQL has no mock.
+- The intent model's F1 of 1.000 is inflated because the synthetic questions share templates. Radar test ROC-AUC is 0.82.
+- A chat asking to "draft a reminder" goes through search and is usually blocked; the agent should use the draft button.
+- Sending a draft and logging it are two separate commits, so a crash between them leaves a sent draft with no audit row.
+
+*Scale*
+- Customer lists run one policy query per customer, `/audit` returns the newest 200 events, and `load_sql.py` only works on a fresh database. Fine at demo scale.
+
 **Compatibility:** greenfield repo, no migration. The schema is created by `schema.sql`.
 
 **Locked decisions**
