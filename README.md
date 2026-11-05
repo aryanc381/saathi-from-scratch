@@ -70,24 +70,44 @@ Messages are never really sent. All data is fake.
 
 ## 5. File structure
 
-Folders marked with a phase number are not built yet.
+Folders marked with a phase number are not built yet. Inside a folder, files are grouped by format (`json`, `csv`, `sql`, `scripts`, `pdf`, `bicep`).
 
 ```text
 saathi-from-scratch/
-├── api/        Python backend (phases 2 and 4)
-├── web/        .NET Blazor screens (phase 5)
-├── ml/         Intent classifier and Renewal Radar (phase 3)
-├── data/       Fake data and policy PDFs            (built)
-│   ├── generate.py   makes all the fake data
-│   ├── docs/         policy PDFs
-│   ├── eval/         test questions with known answers
-│   └── seed/         SQL schema and scripts that load Azure
-├── infra/      Bicep files that create Azure         (built)
-├── scripts/    Live smoke test and teardown (phase 6)
-├── docs/       Runbook and cost report (phase 6)
-├── public/     Images used in this README            (built)
-├── plans/      The approved plan                     (built)
-└── .github/    CI and deploy pipelines (phase 6)
+├── README.md
+├── Makefile                  short commands: generate, deploy-infra, seed
+├── .env.example              every environment variable (names only)
+├── .gitignore
+│
+├── api/                      Python backend (phases 2 and 4)
+├── web/                      .NET Blazor screens (phase 5)
+├── ml/                       Intent classifier and Renewal Radar (phase 3)
+│
+├── data/                     fake data and policy PDFs (built)
+│   ├── generate.py           makes all the fake data
+│   ├── requirements.txt      Python packages for the data scripts
+│   ├── docs/
+│   │   ├── pdf/              13 policy clause PDFs
+│   │   └── json/             manifest.json, describes each PDF
+│   ├── eval/                 gold_questions.json, test questions with known answers
+│   └── seed/
+│       ├── json/             agents, customers, policies, interactions
+│       ├── csv/              intent train/dev/test, radar training rows
+│       ├── sql/              schema.sql, the Azure SQL tables
+│       └── scripts/          load_sql.py, upload_blob.py, create_index.py
+│
+├── infra/                    creates Azure from code (built)
+│   ├── bicep/
+│   │   ├── main.bicep        wires everything together
+│   │   └── modules/          one file per Azure service
+│   └── params/
+│       └── parameters.json   names, model versions, region
+│
+├── scripts/                  live smoke test and teardown (phase 6)
+├── docs/                     runbook and cost report (phase 6)
+├── public/                   images used in this README (built)
+├── plans/                    the approved plan (built)
+└── .github/                  CI and deploy pipelines (phase 6)
 ```
 
 | Folder | What it is responsible for |

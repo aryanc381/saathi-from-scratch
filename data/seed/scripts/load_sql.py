@@ -1,6 +1,6 @@
 """Responsible for creating the Saathi schema in Azure SQL and loading the demo rows.
 
-Run from the repo root: python data/seed/load_sql.py
+Run from the repo root: python data/seed/scripts/load_sql.py
 Needs SQL_CONNECTION_STRING. Meant for a fresh database: it deletes the demo rows first,
 so it fails if sessions, turns or drafts already point at them.
 """
@@ -11,17 +11,17 @@ from pathlib import Path
 
 import pyodbc
 
-SEED_DIR = Path(__file__).parent
+SEED_DIR = Path(__file__).parent.parent  # data/seed
 
 
-# Reads one JSON file from the seed folder.
+# Reads one JSON file from data/seed/json.
 def read_json(file):
-    return json.loads((SEED_DIR / file).read_text(encoding="utf-8"))
+    return json.loads((SEED_DIR / "json" / file).read_text(encoding="utf-8"))
 
 
 # Runs every GO-separated batch in schema.sql.
 def create_schema(cursor):
-    script = (SEED_DIR / "schema.sql").read_text(encoding="utf-8")
+    script = (SEED_DIR / "sql" / "schema.sql").read_text(encoding="utf-8")
     for batch in re.split(r"^GO\s*$", script, flags=re.MULTILINE):
         if batch.strip():
             cursor.execute(batch)

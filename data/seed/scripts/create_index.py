@@ -1,6 +1,6 @@
 """Responsible for creating the Azure AI Search pipeline: index, Blob data source, skillset and indexer.
 
-Run from the repo root: python data/seed/create_index.py
+Run from the repo root: python data/seed/scripts/create_index.py
 Needs AZURE_SEARCH_ENDPOINT, AZURE_SEARCH_ADMIN_KEY, AZURE_SEARCH_INDEX_NAME, AZURE_STORAGE_CONNECTION_STRING,
 AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY and AZURE_OPENAI_EMBED_DEPLOYMENT.
 
@@ -12,7 +12,7 @@ import os
 import httpx
 
 API_VERSION = "2024-07-01"
-EMBED_MODEL = "text-embedding-3-small"  # must match the embedding deployment created by infra/modules/foundry.bicep
+EMBED_MODEL = "text-embedding-3-small"  # must match the embedding deployment created by infra/bicep/modules/foundry.bicep
 EMBED_DIMENSIONS = 1536
 CONTAINER = "policies"
 DATA_SOURCE = "policies-ds"

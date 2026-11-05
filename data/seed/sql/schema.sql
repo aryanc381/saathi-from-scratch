@@ -1,4 +1,4 @@
--- Responsible for defining every Saathi table in Azure SQL. Run by data/seed/load_sql.py; each GO line ends one batch.
+-- Responsible for defining every Saathi table in Azure SQL. Run by data/seed/scripts/load_sql.py; each GO line ends one batch.
 -- policies.status is only ACTIVE or CANCELLED: the renewal state (in grace, lapsed) is computed in code from renewal_date.
 -- audit_events is append-only by convention: the API never updates or deletes rows, and each row stores the previous row's hash.
 

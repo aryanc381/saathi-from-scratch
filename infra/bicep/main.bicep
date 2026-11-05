@@ -1,6 +1,6 @@
 // Responsible for wiring all Azure modules together: names, secrets, access and app settings.
 // It deploys every Azure resource Saathi needs into one resource group.
-// Deploy: az deployment group create -g <rg> -f infra/main.bicep -p @infra/parameters.json sqlAdminPassword=... jwtSecret=...
+// Deploy: az deployment group create -g <rg> -f infra/bicep/main.bicep -p @infra/params/parameters.json sqlAdminPassword=... jwtSecret=...
 targetScope = 'resourceGroup'
 
 param namePrefix string

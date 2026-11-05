@@ -41,7 +41,7 @@ Rules: .NET is only the UI. Python owns all AI and data access. Safety lives in 
 
 ## 3. Models
 
-All models are `#NEW`. Tables live in Azure SQL, created by `data/seed/schema.sql`, with one repo file per table in `api/app/repos/`.
+All models are `#NEW`. Tables live in Azure SQL, created by `data/seed/sql/schema.sql`, with one repo file per table in `api/app/repos/`.
 
 ```text
 Azure SQL
@@ -156,13 +156,22 @@ saathi-from-scratch/
 │   └── tests/                         #NEW — scoring contract tests
 ├── data/
 │   ├── generate.py                    #NEW — seeded synthetic customers
-│   ├── docs/                          #NEW — insurance PDFs
+│   ├── requirements.txt               #NEW — packages for the data scripts
+│   ├── docs/
+│   │   ├── pdf/                       #NEW — insurance clause PDFs
+│   │   └── json/                      #NEW — manifest.json describing each PDF
 │   ├── eval/                          #NEW — gold questions for evaluation
-│   └── seed/                          #NEW — schema.sql, load SQL, upload Blob, create index
+│   └── seed/
+│       ├── json/                      #NEW — agents, customers, policies, interactions
+│       ├── csv/                       #NEW — intent and radar training data
+│       ├── sql/                       #NEW — schema.sql
+│       └── scripts/                   #NEW — load SQL, upload Blob, create index
 ├── infra/
-│   ├── main.bicep                     #NEW — all Azure resources
-│   ├── modules/                       #NEW — one file per service
-│   └── parameters.json                #NEW — names, SKUs, region
+│   ├── bicep/
+│   │   ├── main.bicep                 #NEW — all Azure resources
+│   │   └── modules/                   #NEW — one file per service
+│   └── params/
+│       └── parameters.json            #NEW — names, SKUs, region
 ├── scripts/                           #NEW — live smoke test, teardown
 ├── public/
 │   └── architecture.png               #REUSED — already committed; README architecture image
@@ -384,3 +393,4 @@ These apply to every phase and are part of the quality audit before any PR.
 - **No fallbacks:** no default parameter values, `or` defaults, catch-all fallbacks or silent recovery unless the plan says so. Missing config fails loudly.
 - **Reuse first:** use an existing function, model or component before adding a new one.
 - **Audit:** the quality audit checks every item above, and a failure blocks the PR.
+- **Folder layout:** inside a folder, files of different formats go in format subfolders (`json`, `csv`, `sql`, `scripts`, `pdf`, `bicep`).

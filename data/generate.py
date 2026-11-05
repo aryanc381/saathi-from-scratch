@@ -19,8 +19,11 @@ SEED = 42
 AS_OF = date(2026, 10, 28)
 DEMO_PASSCODE = "saathi-demo"  # shared by every seeded demo agent; synthetic only
 ROOT = Path(__file__).parent
-SEED_DIR = ROOT / "seed"
-DOCS_DIR = ROOT / "docs"
+# Output folders are split by file format.
+JSON_DIR = ROOT / "seed" / "json"
+CSV_DIR = ROOT / "seed" / "csv"
+PDF_DIR = ROOT / "docs" / "pdf"
+MANIFEST_DIR = ROOT / "docs" / "json"
 
 # Demo agents: one supervisor and two agents. `products` limits which customers an agent may see.
 AGENTS = [
@@ -198,32 +201,34 @@ def write_clause_pdf(path, clause_id, product, version, title, text):
 
 # Writes every clause PDF plus manifest.json, which upload_blob.py uses for blob metadata.
 def build_docs():
-    DOCS_DIR.mkdir(exist_ok=True)
+    PDF_DIR.mkdir(parents=True, exist_ok=True)
+    MANIFEST_DIR.mkdir(parents=True, exist_ok=True)
     manifest = []
     for clause_id, product, version, title, text in CLAUSES:
         file = f"{clause_id.lower()}.pdf"
-        write_clause_pdf(DOCS_DIR / file, clause_id, product, version, title, text)
+        write_clause_pdf(PDF_DIR / file, clause_id, product, version, title, text)
         manifest.append({"file": file, "clause_id": clause_id, "product": product, "version": version, "title": title})
-    write_json(DOCS_DIR / "manifest.json", manifest)
+    write_json(MANIFEST_DIR / "manifest.json", manifest)
 
 
 # Writes every generated file: CRM JSON, ML CSVs and policy PDFs.
 def main():
     # One seeded random generator keeps every run identical.
     rng = random.Random(SEED)
-    SEED_DIR.mkdir(exist_ok=True)
+    JSON_DIR.mkdir(parents=True, exist_ok=True)
+    CSV_DIR.mkdir(parents=True, exist_ok=True)
     # CRM rows go to JSON files for the SQL loader.
     customers, policies, interactions = build_crm()
-    write_json(SEED_DIR / "agents.json", build_agents())
-    write_json(SEED_DIR / "customers.json", customers)
-    write_json(SEED_DIR / "policies.json", policies)
-    write_json(SEED_DIR / "interactions.json", interactions)
+    write_json(JSON_DIR / "agents.json", build_agents())
+    write_json(JSON_DIR / "customers.json", customers)
+    write_json(JSON_DIR / "policies.json", policies)
+    write_json(JSON_DIR / "interactions.json", interactions)
     # Intent classifier data: train, dev and test files.
     for name, rows in build_intent(rng).items():
-        write_csv(SEED_DIR / f"intent_{name}.csv", ["text", "label"], rows)
+        write_csv(CSV_DIR / f"intent_{name}.csv", ["text", "label"], rows)
     # Renewal Radar training data.
     radar_columns = ["customer_id", "days_to_renewal", "annual_premium_inr", "interaction_count_90d", "days_since_last_interaction", "renewed"]
-    write_csv(SEED_DIR / "radar.csv", radar_columns, build_radar(rng))
+    write_csv(CSV_DIR / "radar.csv", radar_columns, build_radar(rng))
     # Policy clause PDFs plus the manifest that describes them.
     build_docs()
     print(f"customers={len(customers)} interactions={len(interactions)} clauses={len(CLAUSES)}")
