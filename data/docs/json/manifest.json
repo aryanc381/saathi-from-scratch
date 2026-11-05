@@ -4,90 +4,103 @@
     "clause_id": "HEALTH-SILVER-01",
     "product": "health",
     "version": "v1",
-    "title": "Silver plan: sum insured"
+    "title": "Silver plan: sum insured",
+    "text": "The Silver plan covers hospitalisation up to a sum insured of INR 5,00,000 per policy year, including room, nursing and doctor fees."
   },
   {
     "file": "health-silver-02.pdf",
     "clause_id": "HEALTH-SILVER-02",
     "product": "health",
     "version": "v1",
-    "title": "Silver plan: room rent limit"
+    "title": "Silver plan: room rent limit",
+    "text": "Room rent under the Silver plan is limited to 1 percent of the sum insured per day. Higher room rent reduces the claim proportionately."
   },
   {
     "file": "health-gold-01.pdf",
     "clause_id": "HEALTH-GOLD-01",
     "product": "health",
     "version": "v1",
-    "title": "Gold plan: sum insured"
+    "title": "Gold plan: sum insured",
+    "text": "The Gold plan covers hospitalisation up to a sum insured of INR 10,00,000 per policy year, with no proportionate deduction on room rent."
   },
   {
     "file": "health-gold-exc-07.pdf",
     "clause_id": "HEALTH-GOLD-EXC-07",
     "product": "health",
     "version": "v1",
-    "title": "Gold plan: exclusion for cosmetic treatment"
+    "title": "Gold plan: exclusion for cosmetic treatment",
+    "text": "The Gold plan does not cover cosmetic or aesthetic procedures unless they follow an accident covered under the policy."
   },
   {
     "file": "health-platinum-01.pdf",
     "clause_id": "HEALTH-PLATINUM-01",
     "product": "health",
     "version": "v1",
-    "title": "Platinum plan: sum insured"
+    "title": "Platinum plan: sum insured",
+    "text": "The Platinum plan covers hospitalisation up to INR 25,00,000 per policy year and adds international emergency cover."
   },
   {
     "file": "health-wait-01.pdf",
     "clause_id": "HEALTH-WAIT-01",
     "product": "health",
     "version": "v1",
-    "title": "Waiting period for pre-existing conditions"
+    "title": "Waiting period for pre-existing conditions",
+    "text": "Pre-existing conditions are covered only after 36 continuous months of renewals. Specific listed illnesses have a 24 month waiting period."
   },
   {
     "file": "motor-idv-01.pdf",
     "clause_id": "MOTOR-IDV-01",
     "product": "motor",
     "version": "v1",
-    "title": "Insured declared value"
+    "title": "Insured declared value",
+    "text": "The insured declared value is the market value of the vehicle at policy start, reduced each year by the standard depreciation schedule."
   },
   {
     "file": "motor-ncb-01.pdf",
     "clause_id": "MOTOR-NCB-01",
     "product": "motor",
     "version": "v1",
-    "title": "No-claim bonus"
+    "title": "No-claim bonus",
+    "text": "A no-claim bonus of 20 percent on the own-damage premium applies after one claim-free year and grows to 50 percent after five. A claim resets it."
   },
   {
     "file": "motor-addon-01.pdf",
     "clause_id": "MOTOR-ADDON-01",
     "product": "motor",
     "version": "v1",
-    "title": "Zero depreciation add-on"
+    "title": "Zero depreciation add-on",
+    "text": "The zero depreciation add-on pays the full cost of replaced parts without deducting depreciation, for up to two claims per policy year."
   },
   {
     "file": "term-grace-01.pdf",
     "clause_id": "TERM-GRACE-01",
     "product": "term",
     "version": "v1",
-    "title": "Grace period for premium payment"
+    "title": "Grace period for premium payment",
+    "text": "A grace period of 30 days applies for annual premiums. Cover continues during the grace period and lapses if the premium is unpaid after it."
   },
   {
     "file": "term-freelook-01.pdf",
     "clause_id": "TERM-FREELOOK-01",
     "product": "term",
     "version": "v1",
-    "title": "Free-look period"
+    "title": "Free-look period",
+    "text": "A new term policy can be cancelled within 30 days of receipt for a refund of the premium, less stamp duty and medical costs."
   },
   {
     "file": "term-revival-01.pdf",
     "clause_id": "TERM-REVIVAL-01",
     "product": "term",
     "version": "v1",
-    "title": "Revival of a lapsed policy"
+    "title": "Revival of a lapsed policy",
+    "text": "A lapsed term policy can be revived within 24 months of the first unpaid premium by paying all dues with interest and submitting health proof."
   },
   {
     "file": "renewal-rule-01.pdf",
     "clause_id": "RENEWAL-RULE-01",
     "product": "health",
     "version": "v1",
-    "title": "Renewal and grace rules"
+    "title": "Renewal and grace rules",
+    "text": "A policy renews on its renewal date. Within 30 days after the date it is in grace and can still be renewed. After 30 days it is lapsed and needs a new proposal."
   }
 ]

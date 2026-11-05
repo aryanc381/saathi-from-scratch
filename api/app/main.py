@@ -10,7 +10,8 @@ from app.deps import get_settings
 from app.models.errors import ApiError
 from app.routers import health
 from app.routers.access import audit, auth
-from app.routers.customers import customers
+from app.routers.chat import chat
+from app.routers.customers import customers, radar
 from app.routers.drafts import drafts
 
 logger = logging.getLogger("saathi")
@@ -48,7 +49,7 @@ def handle_unexpected_error(request, error):
 def create_app():
     get_settings()  # reads the settings now, so a missing variable stops the app at startup
     app = FastAPI(title="Saathi API")
-    for module in (health, auth, customers, drafts, audit):
+    for module in (health, auth, customers, radar, drafts, chat, audit):
         app.include_router(module.router)
     app.add_exception_handler(ApiError, handle_api_error)
     app.add_exception_handler(StarletteHTTPException, handle_http_error)

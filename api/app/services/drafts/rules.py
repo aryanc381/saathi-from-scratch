@@ -1,13 +1,5 @@
-"""Responsible for the rules about renewal drafts: what the reminder says and when it may be sent."""
+"""Responsible for the rule about when a renewal draft may be sent."""
 from app.repos.db import Row
-
-
-# Builds the renewal reminder text from a fixed template. Phase 4 replaces this with an LLM answer that has citations.
-def draft_text(customer: Row, policy: Row) -> str:
-    return (
-        f"Hi {customer['name']}, your {policy['product']} {policy['tier']} policy renews on {policy['renewal_date']}. "
-        "Please reply if you would like to renew."
-    )
 
 
 # Returns why a draft may not be sent ("not_approved" or "consent_missing"), or None when it may be sent.

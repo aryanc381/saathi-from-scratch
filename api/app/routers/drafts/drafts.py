@@ -4,13 +4,13 @@ from uuid import uuid4
 
 from fastapi import APIRouter
 
-from app.deps import CurrentAgent, Db, Supervisor
+from app.deps import AppSettings, CurrentAgent, Db, Supervisor
 from app.models.draft import ApproveResult, Draft, DraftCreate, SendResult
 from app.models.errors import ApiError
 from app.repos import customers as customer_repo
 from app.repos import drafts as draft_repo
 from app.services.access import audit, auth
-from app.services.drafts import rules
+from app.services.drafts import rules, writer
 
 router = APIRouter()
 
@@ -25,16 +25,16 @@ def load_own_draft(db, agent, draft_id):
     return draft
 
 
-# Creates a PENDING renewal draft for a customer the agent may access.
-# req: { customer_id } / res: draft / errors: 401, 403, 404, 409
+# Creates a PENDING renewal draft for a customer the agent may access. The LLM polishes it and cites any policy rule.
+# req: { customer_id } / res: draft / errors: 400, 401, 403, 404, 409, 503
 @router.post("/drafts", response_model=Draft, status_code=201)
-def create_draft(body: DraftCreate, agent: CurrentAgent, db: Db):
+def create_draft(body: DraftCreate, agent: CurrentAgent, db: Db, settings: AppSettings):
     customer, policies = auth.load_customer(db, agent, body.customer_id)
     if not policies:
         raise ApiError(409, "no_policy", "This customer has no policy to renew")
     draft_id = str(uuid4())
-    text = rules.draft_text(customer, policies[0])  # policies holds only what this agent may see
-    draft_repo.create(db, draft_id, customer["customer_id"], agent.agent_id, text, [])
+    text, citations = writer.write_draft(settings, customer, policies[0])  # policies holds only what this agent may see
+    draft_repo.create(db, draft_id, customer["customer_id"], agent.agent_id, text, citations)
     audit.log(db, agent.agent_id, "draft_created", {"draft_id": draft_id, "customer_id": customer["customer_id"]})
     return draft_repo.get(db, draft_id)
 

@@ -3,17 +3,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.models.citation import Citation
+
 
 # Body of POST /drafts.
 class DraftCreate(BaseModel):
     customer_id: str = Field(min_length=1, max_length=16)
-
-
-# Where an answer or draft text came from.
-class Citation(BaseModel):
-    source_id: str
-    clause_id: str
-    version: str
 
 
 # A renewal message draft.

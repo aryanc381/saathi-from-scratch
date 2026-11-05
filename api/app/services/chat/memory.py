@@ -23,7 +23,11 @@ def load(db: Connection, agent: Agent, session_id: str) -> dict:
         raise ApiError(404, "session_not_found", "Session not found")
     if agent.role != "supervisor" and session["agent_id"] != agent.agent_id:
         raise ApiError(403, "forbidden", "This session belongs to another agent")
-    return {"summary": session["summary"], "turns": session_repo.last_turns(db, session_id, LAST_TURNS)}
+    return {
+        "customer_id": session["customer_id"],
+        "summary": session["summary"],
+        "turns": session_repo.last_turns(db, session_id, LAST_TURNS),
+    }
 
 
 # Adds one turn to a session. citations is a list of dicts.
