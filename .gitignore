@@ -1,11 +1,42 @@
 # Responsible for listing files git must never commit.
+
+# Secrets and local settings (the repo is public; only .env.example is committed)
+.env
+.env.*
+!.env.example
+*.local.json
+
+# Python
 __pycache__/
 *.pyc
 .venv/
 venv/
-.env
-.env.*
-!.env.example
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# .NET
 bin/
 obj/
+publish/
+.vs/
+*.user
+
+# ML outputs: trained models are rebuilt by ml/, not committed
+ml/artifacts/
+*.joblib
+*.pkl
+mlruns/
+.azureml/
+
+# Deploy packages and logs
+*.zip
+*.log
+
+# Editors and OS
+.idea/
+.vscode/
 .DS_Store
