@@ -4,7 +4,7 @@ Status: approved. Implementation has not started.
 
 ## 1. Goal and repositories
 
-**Goal:** Build Saathi from scratch in this repo: an insurance-agent copilot that follows the architecture diagram (Blazor UI -> FastAPI -> Semantic Kernel orchestrator -> Azure AI Foundry, AI Search, SQL, Blob and Azure ML), with cited answers, human-approved drafts and an audit log. Keep it simple, lean and reusable. The earlier `saathi-genai-capstone` repo is reference only; nothing is copied from it.
+**Goal:** Build Saathi from scratch in this repo: an insurance-agent copilot that follows the architecture diagram (Blazor UI -> FastAPI -> Semantic Kernel orchestrator -> Azure AI Foundry, AI Search, SQL, Blob and Azure ML), with cited answers, human-approved drafts and an audit log. Keep it simple, lean and reusable. This is a separate project: a new repo, a new Azure resource group (`saathi-from-scratch-rg`) and new resource names. Nothing is shared with, copied from, or deployed into any earlier Saathi project or Azure resource.
 
 **Repository:** `saathi-from-scratch` (one repo, owned by folder).
 
@@ -41,14 +41,14 @@ Rules: .NET is only the UI. Python owns all AI and data access. Safety lives in 
 
 ## 3. Models
 
-All models are `#NEW`. Tables live in Azure SQL, created by `data/seed/schema.sql`, with one repo file per table in `api/app/repos/`.
+All models are `#NEW`. Tables live in Azure SQL, created by `data/seed/sql/schema.sql`, with one repo file per table in `api/app/repos/`.
 
 ```text
 Azure SQL
 
-agents                      #NEW  agent_id, name, role (agent|supervisor), products[]
-├── auth.py                 #READ    verify identity, role, product scope
-└── seed                    #WRITE   demo agents
+agents                      #NEW  agent_id, name, role (agent|supervisor), products[], passcode_hash
+├── auth.py                 #READ    verify identity and passcode hash, role, product scope
+└── seed                    #WRITE   demo agents (sha256 hash of the shared demo passcode `saathi-demo`)
 
 customers                   #NEW  customer_id, agent_id (owner), name, phone, language,
 │                                 consent (bool), consent_updated_at
@@ -83,8 +83,8 @@ audit_events                #NEW  id, ts, actor, type, payload, prev_hash, hash
 
 Azure AI Search
 
-index: policy_chunks        #NEW  chunk_id, doc, clause_id, version, product, text, vector
-├── indexer (Blob)          #WRITE   built from PDFs by the skillset
+index: policy_chunks        #NEW  chunk_id, doc, clause_id, version, product, text, entities, vector
+├── indexer (Blob)          #WRITE   built from PDFs by the skillset (OCR, merge, split, entity recognition of amounts and periods, embed)
 └── search.py               #READ    hybrid + semantic query
 
 Azure ML (registered models)
@@ -156,13 +156,22 @@ saathi-from-scratch/
 │   └── tests/                         #NEW — scoring contract tests
 ├── data/
 │   ├── generate.py                    #NEW — seeded synthetic customers
-│   ├── docs/                          #NEW — insurance PDFs
+│   ├── requirements.txt               #NEW — packages for the data scripts
+│   ├── docs/
+│   │   ├── pdf/                       #NEW — insurance clause PDFs
+│   │   └── json/                      #NEW — manifest.json describing each PDF
 │   ├── eval/                          #NEW — gold questions for evaluation
-│   └── seed/                          #NEW — schema.sql, load SQL, upload Blob, create index
+│   └── seed/
+│       ├── json/                      #NEW — agents, customers, policies, interactions
+│       ├── csv/                       #NEW — intent and radar training data
+│       ├── sql/                       #NEW — schema.sql
+│       └── scripts/                   #NEW — load SQL, upload Blob, create index
 ├── infra/
-│   ├── main.bicep                     #NEW — all Azure resources
-│   ├── modules/                       #NEW — one file per service
-│   └── parameters.json                #NEW — names, SKUs, region
+│   ├── bicep/
+│   │   ├── main.bicep                 #NEW — all Azure resources
+│   │   └── modules/                   #NEW — one file per service
+│   └── params/
+│       └── parameters.json            #NEW — names, SKUs, region
 ├── scripts/                           #NEW — live smoke test, teardown
 ├── public/
 │   └── architecture.png               #REUSED — already committed; README architecture image
@@ -195,7 +204,7 @@ All routes are `#NEW`; none are removed. Every error returns `{"error": {"code",
 | GET | `/audit/verify` | supervisor | none | 200 `{valid, broken_at, count}` | 401, 403 |
 | GET | `/usage` | supervisor | none | 200 `{chats, blocked, drafts_by_status}` | 401, 403 |
 
-Decisions: login checks seeded demo agents and returns a signed token (no Entra ID). The supervisor console polls `/drafts`, `/audit` and `/usage` instead of using SignalR. 403 means wrong owner or role, 409 means the draft is in the wrong state, 503 means an Azure dependency failed.
+Decisions: login checks the seeded demo agents' passcode hash and returns a signed token (no Entra ID). The supervisor console polls `/drafts`, `/audit` and `/usage` instead of using SignalR. 403 means wrong owner or role, 409 means the draft is in the wrong state, 503 means an Azure dependency failed.
 
 ## 6. Services and validation
 
@@ -255,7 +264,7 @@ The repo is public: `.env.example` lists names only; real values live in Key Vau
 
 E2E smoke testing is human-only. This section is instructions for the engineer; no agent or subagent runs these cases or reports their result.
 
-Seed: demo agents (one agent who owns C-204 and C-311, a second agent who owns C-118, one supervisor) and the six synthetic customers, with C-205 set to `consent=false`.
+Seed: every demo agent uses the passcode `saathi-demo`. Demo agents (one agent who owns C-204 and C-311, a second agent who owns C-118, one supervisor) and the six synthetic customers, with C-205 set to `consent=false`.
 
 | # | Setup | Action | Expected API / database | Expected UI |
 |---|---|---|---|---|
@@ -281,7 +290,7 @@ Verification is part of each phase; there is no separate verification phase.
 
 | Phase | Outcome | Prerequisites | Verification |
 |---|---|---|---|
-| Phase 1 — Data + infra | `schema.sql`, seeded synthetic data, insurance PDFs, Bicep for all Azure resources | none | Data seeds into SQL; `az deployment` validates; PDFs upload |
+| Phase 1 — Data + infra | `schema.sql`, seeded synthetic data, insurance PDFs, gold evaluation questions, Bicep for all Azure resources | none | Data seeds into SQL; `az deployment` validates; PDFs upload |
 | Phase 2 — API core | config, models, repos, auth, audit, policy, memory, customers/drafts/audit/health routers, running on mocks | Phase 1 | Unit and integration tests pass with mocks |
 | Phase 3 — ML | Intent classifier and Radar trained, scoring code, Azure ML deploy scripts | Phase 1 | Scoring contract tests pass; endpoints answer a sample request |
 | Phase 4 — AI pipeline | llm, search, safety, intent/radar clients, orchestrator, MCP tools, chat and radar routers | Phases 2 and 3 | Integration tests pass; injection and grounding cases blocked |
@@ -329,7 +338,7 @@ Subagent boundaries: each owns only its folders (listed above) and hands back th
 
 **Assumptions**
 - The Azure subscription has quota for a GPT deployment, an embedding deployment and an Azure ML online endpoint in the chosen region.
-- Existing portal-made resources (resource group, Foundry project) can be reused by passing their names to Bicep.
+- Everything is created fresh in its own resource group. No resource from any earlier Saathi project is reused.
 - All data is synthetic; nothing real is stored or sent.
 
 **Risks**
@@ -340,6 +349,7 @@ Subagent boundaries: each owns only its folders (listed above) and hands back th
 **Compatibility:** greenfield repo, no migration. The schema is created by `schema.sql`.
 
 **Locked decisions**
+- Separate project: new repo, new resource group, new resource names (prefix `saathifs`).
 - Single repo, split by folder; .NET is UI only; Python owns AI and data.
 - No Docker; Azure App Service with zip deploy.
 - Bicep for infrastructure.
@@ -371,3 +381,16 @@ flowchart LR
     PO --> SQL
     PO --> AU
 ```
+
+## 12. Code standards (guardrail)
+
+These apply to every phase and are part of the quality audit before any PR.
+
+- **File comment:** every file that can hold comments starts with a comment saying what the file is responsible for. JSON, CSV, PDF and image files are exempt.
+- **Function comment:** every function has a comment directly above it saying what it does, in plain words.
+- **Simple code:** write it the way a junior engineer (SDE-1) would read and maintain it. Straight-line logic, plain loops, clear names. No clever one-liners, no metaprogramming, no deep nesting.
+- **Minimal code:** no helper, wrapper, class, file or dependency unless it removes real duplication or the plan requires it.
+- **No fallbacks:** no default parameter values, `or` defaults, catch-all fallbacks or silent recovery unless the plan says so. Missing config fails loudly.
+- **Reuse first:** use an existing function, model or component before adding a new one.
+- **Audit:** the quality audit checks every item above, and a failure blocks the PR.
+- **Folder layout:** inside a folder, files of different formats go in format subfolders (`json`, `csv`, `sql`, `scripts`, `pdf`, `bicep`).

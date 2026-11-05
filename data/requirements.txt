@@ -1,0 +1,4 @@
+reportlab
+pyodbc
+azure-storage-blob
+httpx

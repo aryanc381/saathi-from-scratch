@@ -1,0 +1,50 @@
+[
+  {
+    "customer_id": "C-204",
+    "agent_id": "A-01",
+    "name": "Anita Desai",
+    "phone": "+91-90000-00204",
+    "language": "en",
+    "consent": true
+  },
+  {
+    "customer_id": "C-311",
+    "agent_id": "A-01",
+    "name": "Rahul Verma",
+    "phone": "+91-90000-00311",
+    "language": "hi",
+    "consent": true
+  },
+  {
+    "customer_id": "C-118",
+    "agent_id": "A-02",
+    "name": "Sunita Kulkarni",
+    "phone": "+91-90000-00118",
+    "language": "mr",
+    "consent": true
+  },
+  {
+    "customer_id": "C-450",
+    "agent_id": "A-01",
+    "name": "Imran Sheikh",
+    "phone": "+91-90000-00450",
+    "language": "en",
+    "consent": true
+  },
+  {
+    "customer_id": "C-205",
+    "agent_id": "A-01",
+    "name": "Kavita Joshi",
+    "phone": "+91-90000-00205",
+    "language": "hi",
+    "consent": false
+  },
+  {
+    "customer_id": "C-999",
+    "agent_id": "A-02",
+    "name": "Deepak Menon",
+    "phone": "+91-90000-00999",
+    "language": "en",
+    "consent": true
+  }
+]

@@ -1,0 +1,93 @@
+[
+  {
+    "file": "health-silver-01.pdf",
+    "clause_id": "HEALTH-SILVER-01",
+    "product": "health",
+    "version": "v1",
+    "title": "Silver plan: sum insured"
+  },
+  {
+    "file": "health-silver-02.pdf",
+    "clause_id": "HEALTH-SILVER-02",
+    "product": "health",
+    "version": "v1",
+    "title": "Silver plan: room rent limit"
+  },
+  {
+    "file": "health-gold-01.pdf",
+    "clause_id": "HEALTH-GOLD-01",
+    "product": "health",
+    "version": "v1",
+    "title": "Gold plan: sum insured"
+  },
+  {
+    "file": "health-gold-exc-07.pdf",
+    "clause_id": "HEALTH-GOLD-EXC-07",
+    "product": "health",
+    "version": "v1",
+    "title": "Gold plan: exclusion for cosmetic treatment"
+  },
+  {
+    "file": "health-platinum-01.pdf",
+    "clause_id": "HEALTH-PLATINUM-01",
+    "product": "health",
+    "version": "v1",
+    "title": "Platinum plan: sum insured"
+  },
+  {
+    "file": "health-wait-01.pdf",
+    "clause_id": "HEALTH-WAIT-01",
+    "product": "health",
+    "version": "v1",
+    "title": "Waiting period for pre-existing conditions"
+  },
+  {
+    "file": "motor-idv-01.pdf",
+    "clause_id": "MOTOR-IDV-01",
+    "product": "motor",
+    "version": "v1",
+    "title": "Insured declared value"
+  },
+  {
+    "file": "motor-ncb-01.pdf",
+    "clause_id": "MOTOR-NCB-01",
+    "product": "motor",
+    "version": "v1",
+    "title": "No-claim bonus"
+  },
+  {
+    "file": "motor-addon-01.pdf",
+    "clause_id": "MOTOR-ADDON-01",
+    "product": "motor",
+    "version": "v1",
+    "title": "Zero depreciation add-on"
+  },
+  {
+    "file": "term-grace-01.pdf",
+    "clause_id": "TERM-GRACE-01",
+    "product": "term",
+    "version": "v1",
+    "title": "Grace period for premium payment"
+  },
+  {
+    "file": "term-freelook-01.pdf",
+    "clause_id": "TERM-FREELOOK-01",
+    "product": "term",
+    "version": "v1",
+    "title": "Free-look period"
+  },
+  {
+    "file": "term-revival-01.pdf",
+    "clause_id": "TERM-REVIVAL-01",
+    "product": "term",
+    "version": "v1",
+    "title": "Revival of a lapsed policy"
+  },
+  {
+    "file": "renewal-rule-01.pdf",
+    "clause_id": "RENEWAL-RULE-01",
+    "product": "health",
+    "version": "v1",
+    "title": "Renewal and grace rules"
+  }
+]
