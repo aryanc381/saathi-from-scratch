@@ -32,7 +32,8 @@ def create_draft(body: DraftCreate, agent: CurrentAgent, db: Db):
     if not policies:
         raise ApiError(409, "no_policy", "This customer has no policy to renew")
     draft_id = str(uuid4())
-    draft_repo.create(db, draft_id, customer["customer_id"], agent.agent_id, policy.draft_text(customer, policies[0]), [])
+    text = policy.draft_text(customer, policies[0])  # policies holds only what this agent may see
+    draft_repo.create(db, draft_id, customer["customer_id"], agent.agent_id, text, [])
     audit.log(db, agent.agent_id, "draft_created", {"draft_id": draft_id, "customer_id": customer["customer_id"]})
     return draft_repo.get(db, draft_id)
 
@@ -49,6 +50,7 @@ def list_drafts(status: Literal["PENDING", "APPROVED", "SENT"], supervisor: Supe
 @router.post("/drafts/{draft_id}/approve", response_model=ApproveResult)
 def approve_draft(draft_id: str, agent: CurrentAgent, db: Db):
     load_own_draft(db, agent, draft_id)
+    # The UPDATE only changes a PENDING draft, so a draft cannot be approved twice.
     if draft_repo.mark_approved(db, draft_id, agent.agent_id) == 0:
         raise ApiError(409, "not_pending", "Only a pending draft can be approved")
     audit.log(db, agent.agent_id, "draft_approved", {"draft_id": draft_id})
@@ -67,6 +69,7 @@ def send_draft(draft_id: str, agent: CurrentAgent, db: Db):
     if reason == "consent_missing":
         audit.log(db, agent.agent_id, "send_blocked", {"draft_id": draft_id, "reason": reason})
         raise ApiError(403, "consent_missing", "The customer has not given consent")
+    # The UPDATE only changes an APPROVED draft, so two sends at once cannot both succeed.
     if draft_repo.mark_sent(db, draft_id) == 0:
         raise ApiError(409, "not_approved", "Approve the draft before sending")
     audit.log(db, agent.agent_id, "draft_sent", {"draft_id": draft_id})

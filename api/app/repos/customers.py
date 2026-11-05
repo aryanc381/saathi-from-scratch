@@ -33,6 +33,7 @@ def policies_for(db: Connection, customer_id: str) -> list[Row]:
 def interactions_for(db: Connection, customer_id: str) -> list[Row]:
     return fetch_all(
         db,
-        "SELECT interaction_id, customer_id, [date], channel, [text] FROM interactions WHERE customer_id = ? ORDER BY [date] DESC",
+        "SELECT interaction_id, customer_id, [date], channel, [text] "
+        "FROM interactions WHERE customer_id = ? ORDER BY [date] DESC",
         customer_id,
     )

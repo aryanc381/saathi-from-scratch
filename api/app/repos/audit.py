@@ -4,13 +4,16 @@ from datetime import datetime
 from app.repos.db import Connection, Row, execute, fetch_all, fetch_one
 
 
-# Returns the newest audit row, or None. UPDLOCK + HOLDLOCK keep other writers out until insert() commits.
+# Returns the newest audit row, or None. TABLOCKX locks the table until insert() commits, so two writers
+# can never read the same last hash and fork the chain.
 def last(db: Connection) -> Row | None:
-    return fetch_one(db, "SELECT TOP 1 id, hash FROM audit_events WITH (UPDLOCK, HOLDLOCK) ORDER BY id DESC")
+    return fetch_one(db, "SELECT TOP 1 id, hash FROM audit_events WITH (TABLOCKX) ORDER BY id DESC")
 
 
 # Appends one audit row and commits (this also releases the lock taken by last()).
-def insert(db: Connection, ts: datetime, actor: str, event_type: str, payload: str, prev_hash: str, hash_value: str) -> None:
+def insert(
+    db: Connection, ts: datetime, actor: str, event_type: str, payload: str, prev_hash: str, hash_value: str
+) -> None:
     execute(
         db,
         "INSERT INTO audit_events (ts, actor, [type], payload, prev_hash, hash) VALUES (?, ?, ?, ?, ?, ?)",
@@ -25,7 +28,8 @@ def all_in_order(db: Connection) -> list[Row]:
 
 # Returns the newest audit rows, newest first.
 def recent(db: Connection, limit: int) -> list[Row]:
-    return fetch_all(db, "SELECT TOP (?) id, ts, actor, [type] AS type, payload, hash FROM audit_events ORDER BY id DESC", limit)
+    sql = "SELECT TOP (?) id, ts, actor, [type] AS type, payload, hash FROM audit_events ORDER BY id DESC"
+    return fetch_all(db, sql, limit)
 
 
 # Returns how many audit rows have the given type.

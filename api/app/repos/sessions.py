@@ -6,17 +6,20 @@ from app.repos.db import Connection, Row, execute, fetch_all, fetch_one
 
 # Creates an empty session.
 def create(db: Connection, session_id: str, agent_id: str, customer_id: str) -> None:
-    execute(db, "INSERT INTO sessions (session_id, agent_id, customer_id) VALUES (?, ?, ?)", session_id, agent_id, customer_id)
+    sql = "INSERT INTO sessions (session_id, agent_id, customer_id) VALUES (?, ?, ?)"
+    execute(db, sql, session_id, agent_id, customer_id)
 
 
 # Returns one session row, or None.
 def get(db: Connection, session_id: str) -> Row | None:
-    return fetch_one(db, "SELECT session_id, agent_id, customer_id, summary FROM sessions WHERE session_id = ?", session_id)
+    sql = "SELECT session_id, agent_id, customer_id, summary FROM sessions WHERE session_id = ?"
+    return fetch_one(db, sql, session_id)
 
 
 # Adds one turn to a session. citations is a list of dicts.
 def add_turn(db: Connection, session_id: str, role: str, text: str, citations: list[dict]) -> None:
-    execute(db, "INSERT INTO turns (session_id, role, text, citations) VALUES (?, ?, ?, ?)", session_id, role, text, json.dumps(citations))
+    sql = "INSERT INTO turns (session_id, role, text, citations) VALUES (?, ?, ?, ?)"
+    execute(db, sql, session_id, role, text, json.dumps(citations))
 
 
 # Returns the latest turns of a session, oldest first.
@@ -29,7 +32,7 @@ def last_turns(db: Connection, session_id: str, limit: int) -> list[Row]:
     )
     for row in rows:
         row["citations"] = json.loads(row["citations"])
-    rows.reverse()
+    rows.reverse()  # the query returns newest first; callers want oldest first
     return rows
 
 

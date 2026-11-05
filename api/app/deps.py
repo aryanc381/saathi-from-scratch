@@ -25,9 +25,9 @@ AppSettings = Annotated[Settings, Depends(get_settings)]
 def get_db(settings: AppSettings) -> Iterator[Connection]:
     db = connect(settings.sql_connection_string)
     try:
-        yield db
+        yield db  # the route runs here
     finally:
-        db.close()
+        db.close()  # closing also rolls back anything that was not committed
 
 
 Db = Annotated[Connection, Depends(get_db)]

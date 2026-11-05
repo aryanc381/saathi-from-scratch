@@ -16,7 +16,8 @@ def with_citations(row: Row) -> Row:
 def create(db: Connection, draft_id: str, customer_id: str, agent_id: str, text: str, citations: list[dict]) -> None:
     execute(
         db,
-        "INSERT INTO drafts (draft_id, customer_id, agent_id, text, citations, status) VALUES (?, ?, ?, ?, ?, 'PENDING')",
+        "INSERT INTO drafts (draft_id, customer_id, agent_id, text, citations, status) "
+        "VALUES (?, ?, ?, ?, ?, 'PENDING')",
         draft_id, customer_id, agent_id, text, json.dumps(citations),
     )
 
@@ -37,7 +38,8 @@ def list_by_status(db: Connection, status: str) -> list[Row]:
 
 # Approves a draft only if it is still PENDING. Returns how many rows changed (0 or 1).
 def mark_approved(db: Connection, draft_id: str, approved_by: str) -> int:
-    return execute(db, "UPDATE drafts SET status = 'APPROVED', approved_by = ? WHERE draft_id = ? AND status = 'PENDING'", approved_by, draft_id)
+    sql = "UPDATE drafts SET status = 'APPROVED', approved_by = ? WHERE draft_id = ? AND status = 'PENDING'"
+    return execute(db, sql, approved_by, draft_id)
 
 
 # Marks a draft sent only if it is still APPROVED. Returns how many rows changed (0 or 1).

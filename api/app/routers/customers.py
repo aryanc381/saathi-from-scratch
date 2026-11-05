@@ -17,11 +17,13 @@ def list_customers(agent: CurrentAgent, db: Db):
         customers = customer_repo.list_all(db)
     else:
         customers = customer_repo.list_by_agent(db, agent.agent_id)
+    # Keep only the customers this agent may see, with the renewal state of the policies they may see.
     items = []
     for customer in customers:
-        policies = customer_repo.policies_for(db, customer["customer_id"])
-        if auth.can_access(agent, customer, policies):
-            items.append({**customer, "renewal_status": policy.customer_renewal_status(policies)})
+        all_policies = customer_repo.policies_for(db, customer["customer_id"])
+        if auth.can_access(agent, customer, all_policies):
+            visible = auth.visible_policies(agent, all_policies)
+            items.append({**customer, "renewal_status": policy.customer_renewal_status(visible)})
     return items
 
 

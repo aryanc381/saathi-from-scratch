@@ -10,7 +10,7 @@ class AuditEvent(BaseModel):
     ts: datetime
     actor: str
     type: str
-    payload: dict
+    payload: str  # the stored JSON text, returned as is
     hash: str
 
 

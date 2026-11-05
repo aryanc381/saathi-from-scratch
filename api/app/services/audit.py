@@ -18,6 +18,7 @@ def compute_hash(prev_hash: str, ts: str, actor: str, event_type: str, payload: 
 def log(db: Connection, actor: str, event_type: str, payload: dict) -> None:
     payload_text = json.dumps(payload, sort_keys=True)
     ts = datetime.now(timezone.utc).replace(tzinfo=None)  # the DATETIME2 column has no timezone
+    # The last hash is read under a table lock that insert() releases when it commits.
     last = audit_repo.last(db)
     if last is None:
         prev_hash = GENESIS
@@ -31,6 +32,7 @@ def log(db: Connection, actor: str, event_type: str, payload: dict) -> None:
 def verify(db: Connection) -> dict:
     rows = audit_repo.all_in_order(db)
     prev_hash = GENESIS
+    # Each row must point at the hash of the row before it, and its own hash must match its contents.
     for row in rows:
         expected = compute_hash(prev_hash, row["ts"].isoformat(), row["actor"], row["type"], row["payload"])
         if row["prev_hash"] != prev_hash or row["hash"] != expected:

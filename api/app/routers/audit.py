@@ -1,6 +1,4 @@
 """Responsible for the supervisor views of the audit log, the chain check and usage counts."""
-import json
-
 from fastapi import APIRouter
 
 from app.deps import Db, Supervisor
@@ -18,8 +16,7 @@ LIST_LIMIT = 200
 # req: token / res: [{ id, ts, actor, type, payload, hash }] / errors: 401, 403
 @router.get("/audit", response_model=list[AuditEvent])
 def list_events(supervisor: Supervisor, db: Db):
-    rows = audit_repo.recent(db, LIST_LIMIT)
-    return [{**row, "payload": json.loads(row["payload"])} for row in rows]
+    return audit_repo.recent(db, LIST_LIMIT)
 
 
 # Checks the whole audit chain. Supervisors only.
@@ -29,10 +26,12 @@ def verify_chain(supervisor: Supervisor, db: Db):
     return audit.verify(db)
 
 
-# Counts chats, blocked chats and drafts per status. Supervisors only. "chat" and "chat_blocked" events are logged by Phase 4.
+# Counts chats, blocked chats and drafts per status. Supervisors only.
+# "chat" and "chat_blocked" events are logged by Phase 4, so those two counts are 0 until then.
 # req: token / res: { chats, blocked, drafts_by_status } / errors: 401, 403
 @router.get("/usage", response_model=Usage)
 def usage(supervisor: Supervisor, db: Db):
+    # Start every status at 0 so a status with no drafts still appears.
     drafts_by_status = {"PENDING": 0, "APPROVED": 0, "SENT": 0}
     for row in draft_repo.count_by_status(db):
         drafts_by_status[row["status"]] = row["total"]
