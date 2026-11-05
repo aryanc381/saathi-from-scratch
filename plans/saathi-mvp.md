@@ -255,11 +255,10 @@ Decisions: login checks the seeded demo agents' passcode hash and returns a sign
 
 ## 7. Environment variables
 
-The repo is public: `.env.example` lists names only; real values live in Key Vault or GitHub secrets. Local runs need no Azure AI variables because the AI services have mocks. The API always needs a SQL database. Minimum for local: `APP_ENV=local`, `JWT_SECRET`, `SQL_CONNECTION_STRING`, and the three mode switches set to `mock` or `local`.
+The repo is public: `.env.example` lists names only; real values live in Key Vault or GitHub secrets. Local runs need no Azure AI variables because the AI services have mocks. The API always needs a SQL database. Minimum for local: `JWT_SECRET`, `SQL_CONNECTION_STRING`, and the three mode switches set to `mock` or `local`.
 
 | Group | Variable | Purpose |
 |---|---|---|
-| App | `APP_ENV` | `local` or `azure` |
 | App | `JWT_SECRET` | signs login tokens |
 | App | `API_URL` | the UI's backend URL |
 | Mode | `LLM_PROVIDER` | `mock` or `azure` |

@@ -152,7 +152,6 @@ module appSettings 'modules/appsettings.bicep' = {
     apiName: apiName
     webName: webName
     apiSettings: {
-      APP_ENV: 'azure'
       LLM_PROVIDER: 'azure'
       RETRIEVER: 'azure'
       // Starts as 'local' because the Azure ML endpoints do not exist yet. After ml/azureml/scripts/deploy.py,
