@@ -1,0 +1,25 @@
+@* Responsible for the frame around every page: the title bar with the user's name and a log out button. *@
+@inherits LayoutComponentBase
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<header>
+    <strong>Saathi</strong>
+    @if (Auth.IsLoggedIn)
+    {
+        <span>@Auth.Name (@Auth.Role)</span>
+        <button @onclick="LogOut">Log out</button>
+    }
+</header>
+<main>
+    @Body
+</main>
+
+@code {
+    // Forgets the login and goes back to the login page.
+    private void LogOut()
+    {
+        Auth.SignOut();
+        Nav.NavigateTo("/login");
+    }
+}

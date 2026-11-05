@@ -1,0 +1,30 @@
+@* Responsible for showing the Renewal Radar worklist: who is likely to renew, and why. *@
+@inherits ApiComponent
+
+<h3>Renewal Radar</h3>
+@if (Error is not null)
+{
+    <p class="error">@Error</p>
+}
+@if (rows.Count == 0)
+{
+    <p>No customers to show.</p>
+}
+@foreach (var row in rows)
+{
+    <div class="card">
+        <strong>@row.Name</strong> <small>@row.Status, @row.DaysToRenewal days</small>
+        <p>Chance to renew: @row.Score.ToString("P0")</p>
+        <small>Because of: @(string.Join(", ", row.TopFactors))</small>
+    </div>
+}
+
+@code {
+    private List<RadarRow> rows = [];
+
+    // Loads the worklist once, when the component appears.
+    protected override async Task OnInitializedAsync()
+    {
+        await Run(async () => rows = await Api.GetRadar());
+    }
+}

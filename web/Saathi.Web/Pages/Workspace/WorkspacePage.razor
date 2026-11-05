@@ -1,0 +1,45 @@
+@* Responsible for the agent screen: customers and the radar on the left,
+   chat and drafts for the picked customer on the right. *@
+@page "/"
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+@if (Auth.IsLoggedIn)
+{
+    <div class="columns">
+        <section class="side">
+            <CustomerList OnPicked="Pick" />
+            <RadarPanel />
+        </section>
+        <section class="main">
+            @if (customerId is null)
+            {
+                <p>Pick a customer to start.</p>
+            }
+            else
+            {
+                <ChatPanel CustomerId="@customerId" />
+                <DraftCard CustomerId="@customerId" />
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private string? customerId;
+
+    // Sends anyone who is not logged in to the login page.
+    protected override void OnInitialized()
+    {
+        if (!Auth.IsLoggedIn)
+        {
+            Nav.NavigateTo("/login");
+        }
+    }
+
+    // Remembers which customer the agent picked.
+    private void Pick(string id)
+    {
+        customerId = id;
+    }
+}

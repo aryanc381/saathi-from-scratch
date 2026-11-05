@@ -1,0 +1,79 @@
+@* Responsible for the chat about one customer: the conversation, citation chips and the box to ask a question. *@
+@inherits ApiComponent
+
+<h3>Chat</h3>
+<div class="chat">
+    @foreach (var line in lines)
+    {
+        <div class="line @line.Role">
+            <p>@line.Text</p>
+            @foreach (var citation in line.Citations)
+            {
+                <span class="chip" title="@citation.SourceId">@citation.ClauseId</span>
+            }
+        </div>
+    }
+</div>
+@if (Error is not null)
+{
+    <p class="error">@Error</p>
+}
+<div class="form">
+    <input @bind="question" @bind:event="oninput" @onkeydown="OnKey" placeholder="Ask about this customer" />
+    <button @onclick="Ask">Ask</button>
+</div>
+
+@code {
+    [Parameter]
+    public string CustomerId { get; set; } = default!;
+
+    private record ChatLine(string Role, string Text, List<Citation> Citations);
+
+    private List<ChatLine> lines = [];
+    private string question = "";
+    private string? sessionId;
+    private string? shownFor;
+
+    // Starts a fresh conversation whenever the agent picks a different customer.
+    protected override void OnParametersSet()
+    {
+        if (CustomerId != shownFor)
+        {
+            shownFor = CustomerId;
+            sessionId = null;
+            lines.Clear();
+        }
+    }
+
+    // Asks when the Enter key is pressed.
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await Ask();
+        }
+    }
+
+    // Sends the question and adds the answer to the conversation. A blocked answer shows its reason.
+    private async Task Ask()
+    {
+        var text = question.Trim();
+        if (text.Length == 0)
+        {
+            return;
+        }
+        question = "";
+        lines.Add(new ChatLine("agent", text, []));
+
+        await Run(async () =>
+        {
+            var reply = await Api.Chat(CustomerId, sessionId, text);
+            if (reply.SessionId is not null)
+            {
+                sessionId = reply.SessionId;
+            }
+            var answer = reply.Blocked ? $"{reply.Answer} ({reply.Reason})" : reply.Answer;
+            lines.Add(new ChatLine("saathi", answer, reply.Citations));
+        });
+    }
+}

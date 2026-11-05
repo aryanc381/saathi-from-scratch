@@ -1,0 +1,43 @@
+@* Responsible for listing the drafts that wait for approval, and letting a supervisor approve them. *@
+@inherits ApiComponent
+
+<h3>Pending drafts</h3>
+@if (Error is not null)
+{
+    <p class="error">@Error</p>
+}
+@if (drafts.Count == 0)
+{
+    <p>No drafts are waiting.</p>
+}
+@foreach (var draft in drafts)
+{
+    <div class="card">
+        <p>@draft.Text</p>
+        <small>Customer @draft.CustomerId, written by @draft.AgentId</small>
+        <button @onclick="() => Approve(draft.DraftId)">Approve</button>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Tick { get; set; }
+
+    private List<Draft> drafts = [];
+
+    // Reloads the list each time the page ticks.
+    protected override async Task OnParametersSetAsync()
+    {
+        await Run(async () => drafts = await Api.ListDrafts("PENDING"));
+    }
+
+    // Approves one draft, then reloads the list.
+    private async Task Approve(string draftId)
+    {
+        await Run(async () =>
+        {
+            await Api.ApproveDraft(draftId);
+            drafts = await Api.ListDrafts("PENDING");
+        });
+    }
+}

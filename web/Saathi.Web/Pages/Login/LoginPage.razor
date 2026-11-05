@@ -1,0 +1,41 @@
+@* Responsible for the login screen: the agent enters an id and passcode and lands on the screen for their role. *@
+@page "/login"
+@inherits ApiComponent
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<h2>Log in</h2>
+<div class="form">
+    <input @bind="agentId" @bind:event="oninput" placeholder="Agent id" />
+    <input type="password" @bind="passcode" @bind:event="oninput" @onkeydown="OnKey" placeholder="Passcode" />
+    <button @onclick="SignIn">Log in</button>
+</div>
+@if (Error is not null)
+{
+    <p class="error">@Error</p>
+}
+
+@code {
+    private string agentId = "";
+    private string passcode = "";
+
+    // Logs in when the Enter key is pressed.
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SignIn();
+        }
+    }
+
+    // Sends the id and passcode, remembers the login and opens the screen for the role.
+    private async Task SignIn()
+    {
+        await Run(async () =>
+        {
+            var login = await Api.Login(agentId, passcode);
+            Auth.SignIn(login.Token, login.Name, login.Role);
+            Nav.NavigateTo(login.Role == "supervisor" ? "/supervisor" : "/");
+        });
+    }
+}
