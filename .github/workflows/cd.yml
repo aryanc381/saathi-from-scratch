@@ -1,0 +1,61 @@
+# Responsible for deploying to Azure App Service when the api, web or scripts folders change on main (or when run by hand):
+# the API, then the web UI, then a smoke check.
+# It deploys code only. Create the Azure resources first with `make deploy-infra`.
+# Needs the GitHub secrets AZURE_CREDENTIALS, AZURE_WEBAPP_NAME_API and AZURE_WEBAPP_NAME_WEB.
+name: CD
+
+on:
+  push:
+    branches: [main]
+    paths: ["api/**", "web/**", "scripts/**", ".github/workflows/cd.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-api:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      # App Service installs requirements.txt itself (SCM_DO_BUILD_DURING_DEPLOYMENT is set by the Bicep).
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_API }}
+          package: api
+
+  deploy-web:
+    name: Deploy web UI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet publish web/Saathi.Web/Saathi.Web.csproj --configuration Release --output publish
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_WEB }}
+          package: publish
+
+  smoke:
+    name: Smoke check
+    needs: [deploy-api, deploy-web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/smoke_test.sh "$API_URL" "$WEB_URL"
+        env:
+          API_URL: https://${{ secrets.AZURE_WEBAPP_NAME_API }}.azurewebsites.net
+          WEB_URL: https://${{ secrets.AZURE_WEBAPP_NAME_WEB }}.azurewebsites.net
