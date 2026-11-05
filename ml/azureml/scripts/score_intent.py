@@ -1,4 +1,6 @@
-"""Responsible for answering intent requests on the Azure ML endpoint (init loads the model, run scores one request).
+"""Responsible for answering intent requests on the Azure ML endpoint.
+
+init loads the model once; run scores one request.
 
 Request:  { "text": "when does my policy renew?" }
 Response: { "label": "renewal", "confidence": 0.93 }

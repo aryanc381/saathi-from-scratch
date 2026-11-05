@@ -1,4 +1,6 @@
-"""Responsible for answering Renewal Radar requests on the Azure ML endpoint (init loads the model, run scores one request).
+"""Responsible for answering Renewal Radar requests on the Azure ML endpoint.
+
+init loads the model once; run scores one request.
 
 Request:  { "rows": [{ "customer_id", "days_to_renewal", "annual_premium_inr",
                        "interaction_count_90d", "days_since_last_interaction" }] }

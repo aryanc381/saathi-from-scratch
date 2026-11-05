@@ -34,7 +34,7 @@ def deploy(client: MLClient, endpoint_name: str, model_name: str, scoring_script
     deployment = ManagedOnlineDeployment(
         name=DEPLOYMENT,
         endpoint_name=endpoint_name,
-        model=f"{model_name}@latest",
+        model=client.models.get(name=model_name, label="latest"),
         code_configuration=CodeConfiguration(code=str(ML_DIR), scoring_script=scoring_script),
         environment=Environment(image=BASE_IMAGE, conda_file=str(ML_DIR / "azureml" / "config" / "conda.yml")),
         instance_type=INSTANCE_TYPE,

@@ -11,7 +11,10 @@ from azure.ai.ml.entities import Model
 from azure.identity import DefaultAzureCredential
 
 ARTIFACTS = Path(__file__).resolve().parents[2] / "artifacts"
-MODELS = {"intent-classifier": ARTIFACTS / "intent" / "model.joblib", "renewal-radar": ARTIFACTS / "radar" / "model.joblib"}
+MODELS = {
+    "intent-classifier": ARTIFACTS / "intent" / "model.joblib",
+    "renewal-radar": ARTIFACTS / "radar" / "model.joblib",
+}
 
 
 # Registers each trained model file under its name and prints the version Azure gave it.
