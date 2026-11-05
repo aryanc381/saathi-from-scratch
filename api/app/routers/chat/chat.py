@@ -11,7 +11,7 @@ router = APIRouter()
 
 # Answers a question about a customer, with citations. A blocked question returns blocked=true with a reason.
 # req: { customer_id, session_id?, question } / res: { session_id, answer, citations, intent, blocked, reason }
-# errors: 400, 401, 403, 404, 503
+# errors: 400, 401, 403, 404, 429, 503
 @router.post("/chat", response_model=ChatResponse)
 def chat(body: ChatRequest, agent: CurrentAgent, db: Db, settings: AppSettings):
     return pipeline.answer(db, settings, agent, body.customer_id, body.session_id, body.question)

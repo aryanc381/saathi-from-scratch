@@ -16,4 +16,4 @@ if ! odbcinst -q -d -n "ODBC Driver 18 for SQL Server" > /dev/null 2>&1; then
   ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
 fi
 
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000

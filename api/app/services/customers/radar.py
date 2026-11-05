@@ -66,8 +66,10 @@ def score_rows(settings: Settings, rows: list[dict]) -> list[dict]:
 def worklist(db: Connection, settings: Settings, agent: Agent) -> list[dict]:
     candidates = []
     for customer, policies in auth.visible_customers(db, agent):
-        if policies and renewal.renewal_status(policies[0]) in CAN_RENEW:
-            candidates.append((customer, policies[0]))
+        # A customer's soonest policy may have lapsed while another can still renew, so pick the first one that can.
+        open_policies = [policy for policy in policies if renewal.renewal_status(policy) in CAN_RENEW]
+        if open_policies:
+            candidates.append((customer, open_policies[0]))
     if not candidates:
         return []
     rows = [build_features(db, customer, policy) for customer, policy in candidates]
