@@ -13,7 +13,7 @@ from pathlib import Path
 
 # The endpoint's code folder is ml/, so add it to the path to import radar.score.
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from radar.score import load, predict  # noqa: E402
+from radar.score import load, predict
 
 model = None
 

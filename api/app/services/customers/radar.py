@@ -6,9 +6,9 @@ import math
 from datetime import date
 
 from app.config import Settings
+from app.models.auth import Agent
 from app.repos import customers as customer_repo
 from app.repos.db import Connection, Row
-from app.models.auth import Agent
 from app.services.access import auth
 from app.services.ai.client import post_json
 from app.services.customers import renewal
