@@ -38,63 +38,107 @@ Still open:
 
 ```mermaid
 flowchart TD
-    Agent["Insurance agent"] --> UI["Blazor UI"]
+    Agent["Insurance agent"] --> UI["Blazor web UI"]
     UI --> API["FastAPI"]
-    API --> SK["Semantic Kernel pipeline"]
-    SK --> Answer["Cited answer"]
-    SK --> Foundry["AI Foundry<br/>GPT"]
-    SK --> Search["AI Search<br/>policy clauses"]
-    SK --> SQL["Azure SQL<br/>customers, audit, etc."]
-    SK --> ML["Azure ML<br/>intent, Renewal Radar"]
-    Blob["Blob PDFs"] -->|indexer| Search
+    API --> PL["Pipeline<br/>plain Python"]
+    PL --> Answer["Cited answer"]
+    PL --> Foundry["AI Foundry<br/>GPT"]
+    PL --> Search["AI Search<br/>policy clauses"]
+    API --> SQL[("Azure SQL<br/>customers, drafts, audit")]
+    PL --> ML["Azure ML<br/>intent, Renewal Radar"]
+    Blob[("Blob PDFs")] -->|"indexer + skillset"| Search
 ```
 
-One question goes through these steps, in order:
-**safety check → access check → intent → memory → search → GPT → grounding check → audit log.**
-
-## 3. How we are building it
+One question goes through these steps, in order. Any step can stop it.
 
 ```mermaid
 flowchart LR
-    P1["1. Data + infra"] --> P2["2. API core"]
-    P1 --> P3["3. ML"]
-    P2 --> P4["4. AI pipeline"]
-    P3 --> P4
-    P4 --> P5["5. Web UI"]
-    P4 --> P6["6. CI/CD"]
+    Q["Question"] --> RL["Rate limit"]
+    RL --> SF["Safety check"]
+    SF --> AC["Access check"]
+    AC --> IN["Intent"]
+    IN --> ME["Memory"]
+    ME --> SE["Search"]
+    SE --> GP["GPT"]
+    GP --> GR["Grounding check"]
+    GR --> AU["Audit log"]
+    AU --> A["Answer + citations"]
+    SF -.->|"attack"| X["Blocked"]
+    GR -.->|"not backed by sources"| X
 ```
 
-| Phase | What |
+The first architecture picture shows Semantic Kernel. The built pipeline is plain Python in a fixed order, so safety stays in code. The search tool is defined in the MCP style, ready to be wrapped later.
+
+**Azure services** (all created by `infra/`):
+
+| Service | Used for |
 |---|---|
-| 1. Data + infra | SQL schema, fake data, policy PDFs, Azure resources (Bicep) |
-| 2. API core | Login, customers, drafts, audit log, memory |
-| 3. ML | Intent classifier and Renewal Radar |
-| 4. AI pipeline | GPT, search, safety checks, chat |
-| 5. Web UI | Agent workspace and supervisor console |
-| 6. CI/CD | Checks on every PR, deploy to Azure |
+| AI Foundry | GPT-4.1-mini answers, text-embedding-3-small search vectors |
+| AI Search | hybrid keyword + vector search with the semantic ranker |
+| Blob Storage | the policy PDFs, read by the search indexer |
+| Azure SQL | agents, customers, policies, sessions, drafts, the audit log |
+| Azure ML | two endpoints: intent classifier and Renewal Radar |
+| App Service | hosts the API (Python) and the web UI (.NET) |
+| Key Vault | the API's secrets |
+
+## 3. How it was built
+
+```mermaid
+flowchart LR
+    P1["1 Data + infra"] --> P2["2 API core"]
+    P1 --> P3["3 ML"]
+    P2 --> P4["4 AI pipeline"]
+    P3 --> P4
+    P4 --> P5["5 Web UI"]
+    P4 --> P6["6 CI/CD"]
+```
+
+| Phase | What | Status |
+|---|---|---|
+| 1 Data + infra | SQL schema, fake data, policy PDFs, Azure resources (Bicep) | built |
+| 2 API core | login, customers, drafts, audit log, memory | built |
+| 3 ML | intent classifier, Renewal Radar, Azure ML scripts | built |
+| 4 AI pipeline | GPT, search, safety, chat, radar, rate limits | built |
+| 5 Web UI | login, agent workspace, supervisor screen | built, compiles |
+| 6 CI/CD | CI checks, deploy pipeline, smoke and teardown scripts | built, never run |
 
 The full plan is in [`plans/saathi-mvp.md`](plans/saathi-mvp.md).
 
 ## 4. What it does
 
-- Answers questions about a customer with citations.
-- Remembers the conversation, so follow-ups work.
-- Understands the intent of each question.
-- Shows an agent only their own customers.
-- Drafts a renewal message that must be approved before it is "sent".
+- Answers questions about a customer with citations, and remembers the conversation.
+- Shows an agent only their own customers and approved products.
+- Drafts a renewal message that must be approved, and re-checks consent before it is "sent".
 - Logs every action in a tamper-evident audit log.
-- Blocks prompt-injection and unsupported claims.
+- Blocks prompt injection and answers that the sources do not back.
 - Ranks customers by renewal likelihood (Renewal Radar).
-- Supervisor console: pending drafts, audit log, usage.
+- Limits each agent to 20 chats and 5 drafts a minute, to cap LLM cost.
+- Supervisor screen: pending drafts, audit log with a chain check, usage.
 
 ```mermaid
 flowchart LR
-    D["Draft"] --> PEND["PENDING"] --> AP["Approved"] --> C{"Consent?"}
-    C -->|yes| S["SIMULATED_SENT"]
-    C -->|no| B["Blocked"]
+    D["Draft"] --> PEND["PENDING"] --> AP["APPROVED"] --> C{"Consent?"}
+    C -->|yes| S["SENT, simulated"]
+    C -->|no| B["Blocked, 403"]
 ```
 
 Messages are never really sent. All data is fake.
+
+**The 14 API routes:**
+
+| Route | Who | Does |
+|---|---|---|
+| `GET /health` | anyone | is it up |
+| `POST /auth/login` | anyone | get a token |
+| `GET /customers`, `GET /customers/{id}` | agent | own customers, or one customer's policies and history |
+| `POST /chat` | agent | a cited answer |
+| `GET /sessions/{id}` | agent | the remembered turns |
+| `POST /drafts` | agent | create a renewal draft |
+| `POST /drafts/{id}/approve`, `.../send` | owner or supervisor | approve, then send (simulated) |
+| `GET /drafts?status=` | supervisor | list drafts |
+| `GET /radar/worklist` | agent | customers likely to renew |
+| `GET /audit`, `GET /audit/verify` | supervisor | the log, and the chain check |
+| `GET /usage` | supervisor | chat, blocked and draft counts |
 
 ## 5. File structure
 
@@ -109,7 +153,7 @@ saathi-from-scratch/
 │
 ├── api/                          Python backend
 │   ├── requirements.txt
-│   ├── startup.sh                starts the API on Azure
+│   ├── startup.sh                installs the ODBC driver, starts the API on Azure
 │   └── app/
 │       ├── main.py               wires the app and the error format
 │       ├── config.py             reads settings from env vars
@@ -123,7 +167,7 @@ saathi-from-scratch/
 │       │   ├── drafts/           renewal drafts
 │       │   └── chat/             questions and sessions
 │       ├── services/             the business logic, grouped by feature
-│       │   ├── access/           login, tokens, who may see what, audit chain
+│       │   ├── access/           login, tokens, who may see what, audit chain, rate limit
 │       │   ├── customers/        renewal state, radar scoring
 │       │   ├── drafts/           when a draft may be sent, writing the draft
 │       │   ├── chat/             intent, memory, safety checks
@@ -168,129 +212,88 @@ saathi-from-scratch/
 │
 ├── scripts/                      smoke_test.sh (check a deploy), teardown.sh (delete everything)
 ├── public/                       images used in this README
-├── plans/                        the approved plan and the four guides (set up, Azure, smoke tests, untested)
+├── plans/                        the plan and four guides: set up, Azure, smoke tests, untested
 └── .github/workflows/            ci.yml (checks on PRs), cd.yml (deploy on merge)
 ```
 
 | Folder | What it is responsible for |
 |---|---|
-| `api/` | The brain. Checks who is logged in, runs the question through safety, search and GPT, saves drafts and the audit log. Grouped by feature: access, customers, drafts, chat. |
-| `web/` | What the agent sees. Login, chat with citations, customers, the radar, drafts, and the supervisor screen. It only shows things; every decision is made by the API. |
-| `ml/` | The two predictions: what the agent is asking about (intent), and who is likely to renew (Renewal Radar). Trains them and puts them on Azure ML. |
-| `data/` | The fake customers, policies and policy PDFs, and the scripts that put them into Azure SQL, Blob and Search. |
-| `infra/` | Creates every Azure service from code, so the whole setup can be rebuilt or deleted in one command. |
-| `scripts/` | Two helpers: check that a deployed site works, and delete everything after the demo. |
-| `public/` | Pictures only. |
-| `plans/` | The plan we agreed before writing code, plus four guides: set up, connect to Azure, smoke tests, and what is untested. |
-| `.github/` | `ci.yml` lints the Python, builds the UI and scans for secrets on every pull request. `cd.yml` deploys to Azure when the api, web or scripts change on `main`. |
+| `api/` | The brain. Checks who is logged in, runs the question through safety, search and GPT, saves drafts and the audit log. |
+| `web/` | What the agent sees. It only shows things; every decision is made by the API. |
+| `ml/` | The two predictions: intent, and who is likely to renew. Trains them and puts them on Azure ML. |
+| `data/` | The fake customers, policies and policy PDFs, and the scripts that load them into Azure. |
+| `infra/` | Creates every Azure service from code, so it can be rebuilt or deleted in one command. |
+| `scripts/` | Check that a deployed site works, and delete everything after the demo. |
+| `plans/` | The plan, plus the four guides below. |
+| `.github/` | `ci.yml` lints the Python, builds the UI and scans for secrets on every PR. `cd.yml` deploys when `api/`, `web/` or `scripts/` change on `main`. |
 
-## 6. How to set it up
+## 6. Quick start
 
-You need: Python 3.12, an Azure subscription with the Azure CLI, and the ODBC Driver 18 for SQL Server.
+Full steps: [01 Set up the repo](plans/01-setup-the-repo.md) and [02 Connect to Azure](plans/02-connect-to-azure.md).
+
+```mermaid
+flowchart LR
+    A["Clone, pip install"] --> B["cp .env.example .env"]
+    B --> C["make deploy-infra"]
+    C --> D["make seed"]
+    D --> E["Run the API and the UI"]
+    E --> F["Log in as A-01"]
+```
 
 ```bash
-git clone https://github.com/aryanc381/saathi-from-scratch.git
-cd saathi-from-scratch
-pip install -r data/requirements.txt
-cp .env.example .env        # then fill it in
-make generate               # fake data + policy PDFs
-az login
-az group create -n saathi-from-scratch-rg -l centralus
+git clone https://github.com/aryanc381/saathi-from-scratch.git && cd saathi-from-scratch
+pip install -r api/requirements.txt -r data/requirements.txt -r ml/requirements.txt
+cp .env.example .env                                          # fill it in
 set -a; source .env; set +a
-make deploy-infra           # creates all Azure resources
-make seed                   # loads SQL, uploads PDFs, builds the search index
+make deploy-infra && make seed                                # creates Azure, loads the data
+cd api && python -m uvicorn app.main:app --env-file ../.env   # the API on :8000
+cd web/Saathi.Web && API_URL=http://localhost:8000 dotnet run # the UI
 ```
 
-### Train and deploy the ML models
+Log in as `A-01` or `A-02` (agents) or `A-00` (supervisor). The passcode is `saathi-demo`.
 
-```bash
-pip install -r ml/requirements.txt
-make train                  # trains the intent classifier and the Renewal Radar model
-python ml/azureml/scripts/register.py   # needs AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, AZURE_ML_WORKSPACE
-python ml/azureml/scripts/deploy.py     # creates the two endpoints; they cost money while they run
-```
-
-Copy each endpoint's URL and key into `.env` (`INTENT_ENDPOINT_URL`, `RADAR_ENDPOINT_URL`, and their keys) and set `ML_PROVIDER=azure`. Delete the endpoints after the demo.
-
-Set `RG=saathi-from-scratch-rg` in `.env`. This project uses its own resource group, separate from any earlier one.
-
-Before `make seed`, copy the connection strings and keys from the deployed resources into `.env`, and add your IP to the SQL firewall.
-
-### Run the API
-
-Put `JWT_SECRET` (32+ characters), `SQL_CONNECTION_STRING` and the three mode switches in `.env`. With `LLM_PROVIDER=mock`, `RETRIEVER=local` and `ML_PROVIDER=local` nothing else is needed. The machine also needs the ODBC Driver 18 for SQL Server.
-
-```bash
-pip install -r api/requirements.txt
-cd api
-uvicorn app.main:app --env-file ../.env
-```
-
-Open http://localhost:8000/docs to see every route.
-
-### Run the web UI
-
-```bash
-cd web/Saathi.Web
-API_URL=http://localhost:8000 dotnet run      # needs the .NET 10 SDK
-```
-
-Open the address it prints, then log in as `A-01` (agent) or `A-00` (supervisor) with the passcode `saathi-demo`.
-
-### Deploy with GitHub Actions
-
-Run `make deploy-infra` and `make seed` once, then add three GitHub secrets (Settings, Secrets and variables, Actions):
-
-| Secret | Value |
-|---|---|
-| `AZURE_CREDENTIALS` | the JSON from `az ad sp create-for-rbac --name saathi-cd --role contributor --scopes /subscriptions/<id>/resourceGroups/saathi-from-scratch-rg --sdk-auth` |
-| `AZURE_WEBAPP_NAME_API` | the API app's name (the `apiUrl` output of the deploy, without `https://` and `.azurewebsites.net`) |
-| `AZURE_WEBAPP_NAME_WEB` | the web app's name (same, from `webUrl`) |
-
-After that, `cd.yml` deploys on every merge that touches `api/`, `web/` or `scripts/`, and can also be run by hand from the Actions tab. Until the secrets exist, CD fails.
-
-### Delete everything after the demo
-
-```bash
-scripts/teardown.sh saathi-from-scratch-rg    # asks you to type the group name first
-```
+Delete everything after the demo: `scripts/teardown.sh saathi-from-scratch-rg`.
 
 ## 7. Environment variables
 
-Names only live in [`.env.example`](.env.example). Real values stay in Key Vault or GitHub secrets, because this repo is public.
+Names only live in [`.env.example`](.env.example). Real values stay in Key Vault, `.env` (gitignored) or GitHub secrets, because this repo is public.
 
 | Group | Variables |
 |---|---|
-| App | `JWT_SECRET`, `API_URL` (the web UI's address for the API) |
+| App | `JWT_SECRET` (32+ characters), `API_URL` (the web UI's address for the API) |
 | Mode (mock or Azure) | `LLM_PROVIDER`, `RETRIEVER`, `ML_PROVIDER` |
 | AI Foundry | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_CHAT_DEPLOYMENT`, `AZURE_OPENAI_EMBED_DEPLOYMENT` |
 | AI Search | `AZURE_SEARCH_ENDPOINT`, `AZURE_SEARCH_ADMIN_KEY`, `AZURE_SEARCH_INDEX_NAME` |
-| SQL | `SQL_CONNECTION_STRING` |
-| Blob | `AZURE_STORAGE_CONNECTION_STRING` |
+| SQL and Blob | `SQL_CONNECTION_STRING`, `AZURE_STORAGE_CONNECTION_STRING` |
 | Azure ML endpoints | `RADAR_ENDPOINT_URL`, `RADAR_ENDPOINT_KEY`, `INTENT_ENDPOINT_URL`, `INTENT_ENDPOINT_KEY` |
 | Azure ML scripts | `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `AZURE_ML_WORKSPACE` |
-| Deploy only | `RG`, `SQL_ADMIN_PASSWORD`, plus GitHub secrets `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_API`, `AZURE_WEBAPP_NAME_WEB` |
+| Deploy only | `RG`, `SQL_ADMIN_PASSWORD` |
+| GitHub secrets | `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_API`, `AZURE_WEBAPP_NAME_WEB` |
 
-For local work, set a `JWT_SECRET`, a `SQL_CONNECTION_STRING`, and the three mode switches to `mock` / `local`. The AI services (GPT, search, ML) are mocked, but the API always needs a SQL database.
+For local work set `JWT_SECRET`, `SQL_CONNECTION_STRING` and the three mode switches to `mock` / `local`. GPT, search and ML are then mocked, but the API always needs a SQL database. Put values with spaces or semicolons in double quotes.
 
 ## 8. End-to-end smoke tests
 
-Run by a person, not by a script. Every demo agent's passcode is `saathi-demo`. Seed: agent 1 owns C-204, C-311, C-205, C-450; agent 2 owns C-118 and C-999; C-205 has no consent.
+Run by a person, on the deployed site. All 17 cases, each with a flow diagram, are in [03 End-to-end smoke tests](plans/03-e2e-smoke-tests.md).
 
-| # | Do this | Expect |
+```mermaid
+flowchart LR
+    A["Access<br/>1, 8, 15"] --> B["Cited answers<br/>2, 3, 9, 17"]
+    B --> C["Drafts<br/>4, 5, 6, 7"]
+    C --> D["Supervisor and audit<br/>11, 12, 13"]
+    D --> E["Failures and limits<br/>10, 14, 16"]
+```
+
+| # | Case | Expect |
 |---|---|---|
-| 1 | Log in as agent 1 | Token, workspace opens |
-| 2 | Pick C-204, ask "Compare Silver and Gold" | Answer with citations |
-| 3 | Ask "and Platinum?" | Answered without repeating the customer |
-| 4 | Request a renewal draft | PENDING, Send disabled |
-| 5 | Send before approving | 409 error |
-| 6 | Approve, then send | APPROVED, then SIMULATED_SENT |
-| 7 | Approve and send for C-205 (no consent) | 403, not sent |
-| 8 | Agent 1 opens C-118 | 403, no data |
-| 9 | Send a prompt-injection question | Blocked, with a reason |
-| 10 | Send an empty, then a 1000+ character question | 400 each |
-| 11 | As supervisor, open worklist, drafts, usage | Lists load |
-| 12 | Verify the audit chain | Valid |
-| 13 | Edit one audit row in SQL, verify again | Invalid, shows the broken row |
-| 14 | Turn off Foundry or Search, ask a question | 503, no unsourced answer |
-| 15 | Open `/health` on the live Azure URL | 200 |
+| 1 | Log in | token, or a clear error |
+| 2, 3 | Ask a question, then a follow-up | cited answers |
+| 4, 5, 6 | Draft, send too early, approve and send | PENDING, 409, then sent (simulated) |
+| 7 | Send to a customer with no consent | 403 |
+| 8 | Open another agent's customer | 403 |
+| 9, 17 | Prompt injection, and a draft typed in chat | blocked, and a pointer to the button |
+| 10 | Bad input | 400 |
+| 11, 12, 13 | Supervisor screens, audit check, a tampered row | lists load, valid, then broken at that row |
+| 14 | Azure is down | 503, no made-up answer |
+| 15 | Live health | 200 |
+| 16 | 21 questions in a minute | 429 on the 21st |
