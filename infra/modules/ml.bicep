@@ -1,4 +1,4 @@
-// Azure ML workspace with its own Key Vault. Online endpoints for intent and radar are created later by ml/azureml.
+// Responsible for the Azure ML workspace, with its own Key Vault. Online endpoints for intent and radar are created later by ml/azureml.
 param name string
 param keyVaultName string
 param location string

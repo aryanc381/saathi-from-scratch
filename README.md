@@ -79,11 +79,13 @@ pip install -r data/requirements.txt
 cp .env.example .env        # then fill it in
 make generate               # fake data + policy PDFs
 az login
-az group create -n <rg> -l centralus
+az group create -n saathi-from-scratch-rg -l centralus
 set -a; source .env; set +a
 make deploy-infra           # creates all Azure resources
 make seed                   # loads SQL, uploads PDFs, builds the search index
 ```
+
+Set `RG=saathi-from-scratch-rg` in `.env`. This project uses its own resource group, separate from any earlier one.
 
 Before `make seed`, copy the connection strings and keys from the deployed resources into `.env`, and add your IP to the SQL firewall.
 
@@ -108,7 +110,7 @@ For local work, set `APP_ENV=local`, a `JWT_SECRET`, and the three mode switches
 
 ## 7. End-to-end smoke tests
 
-Run by a person, not by a script. Seed: agent 1 owns C-204, C-311, C-205, C-450; agent 2 owns C-118 and C-999; C-205 has no consent.
+Run by a person, not by a script. Every demo agent's passcode is `saathi-demo`. Seed: agent 1 owns C-204, C-311, C-205, C-450; agent 2 owns C-118 and C-999; C-205 has no consent.
 
 | # | Do this | Expect |
 |---|---|---|

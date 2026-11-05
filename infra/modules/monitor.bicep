@@ -1,4 +1,4 @@
-// Log Analytics workspace plus the Application Insights component that Azure ML and the apps report to.
+// Responsible for the Log Analytics workspace plus the Application Insights component that Azure ML and the apps report to.
 param name string
 param location string
 

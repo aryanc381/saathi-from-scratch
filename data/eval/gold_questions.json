@@ -1,0 +1,17 @@
+[
+  {"question": "What is the sum insured under the Silver plan?", "expected_clause_ids": ["HEALTH-SILVER-01"]},
+  {"question": "How much room rent does the Silver plan allow per day?", "expected_clause_ids": ["HEALTH-SILVER-02"]},
+  {"question": "What is the sum insured under the Gold plan?", "expected_clause_ids": ["HEALTH-GOLD-01"]},
+  {"question": "Does the Gold plan cover cosmetic surgery?", "expected_clause_ids": ["HEALTH-GOLD-EXC-07"]},
+  {"question": "What extra cover does the Platinum plan add?", "expected_clause_ids": ["HEALTH-PLATINUM-01"]},
+  {"question": "How long is the waiting period for pre-existing conditions?", "expected_clause_ids": ["HEALTH-WAIT-01"]},
+  {"question": "How is the insured declared value of a vehicle decided?", "expected_clause_ids": ["MOTOR-IDV-01"]},
+  {"question": "How does the no-claim bonus work?", "expected_clause_ids": ["MOTOR-NCB-01"]},
+  {"question": "What does the zero depreciation add-on pay?", "expected_clause_ids": ["MOTOR-ADDON-01"]},
+  {"question": "How long is the grace period for a term plan premium?", "expected_clause_ids": ["TERM-GRACE-01"]},
+  {"question": "Can a new term policy be cancelled for a refund?", "expected_clause_ids": ["TERM-FREELOOK-01"]},
+  {"question": "Can a lapsed term policy be revived?", "expected_clause_ids": ["TERM-REVIVAL-01"]},
+  {"question": "What happens if the renewal date is missed?", "expected_clause_ids": ["RENEWAL-RULE-01"]},
+  {"question": "Is a customer 20 days past the renewal date still renewable?", "expected_clause_ids": ["RENEWAL-RULE-01"]},
+  {"question": "Compare the Silver and Gold plans", "expected_clause_ids": ["HEALTH-SILVER-01", "HEALTH-GOLD-01"]}
+]

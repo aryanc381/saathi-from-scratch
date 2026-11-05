@@ -1,4 +1,4 @@
-// Key Vault (RBAC mode) that holds every runtime secret; the API reads them through App Service Key Vault references.
+// Responsible for the Key Vault (RBAC mode) that holds every runtime secret; the API reads them through App Service Key Vault references.
 param name string
 param location string
 @secure()

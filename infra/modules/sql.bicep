@@ -1,4 +1,4 @@
-// Azure SQL server and Basic database. Add your own IP as a firewall rule to run data/seed/load_sql.py from a laptop.
+// Responsible for the Azure SQL server and Basic database. Add your own IP as a firewall rule to run data/seed/load_sql.py from a laptop.
 param serverName string
 param databaseName string
 param location string

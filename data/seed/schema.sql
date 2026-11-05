@@ -1,4 +1,4 @@
--- Saathi schema for Azure SQL. Run by data/seed/load_sql.py; each GO line ends one batch.
+-- Responsible for defining every Saathi table in Azure SQL. Run by data/seed/load_sql.py; each GO line ends one batch.
 -- policies.status is only ACTIVE or CANCELLED: the renewal state (in grace, lapsed) is computed in code from renewal_date.
 -- audit_events is append-only by convention: the API never updates or deletes rows, and each row stores the previous row's hash.
 
@@ -7,7 +7,8 @@ CREATE TABLE agents (
     agent_id NVARCHAR(16) NOT NULL PRIMARY KEY,
     name NVARCHAR(100) NOT NULL,
     role NVARCHAR(16) NOT NULL CHECK (role IN ('agent', 'supervisor')),
-    products NVARCHAR(200) NOT NULL  -- JSON array, e.g. ["health","motor"]
+    products NVARCHAR(200) NOT NULL,  -- JSON array, e.g. ["health","motor"]
+    passcode_hash CHAR(64) NOT NULL  -- sha256 of the demo passcode
 )
 GO
 

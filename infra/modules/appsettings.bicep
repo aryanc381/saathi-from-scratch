@@ -1,4 +1,4 @@
-// Sets the app settings of both sites. Runs after the API's Key Vault role is granted so secret references resolve.
+// Responsible for setting the app settings of both sites. Runs after the API's Key Vault role is granted so secret references resolve.
 param apiName string
 param webName string
 param apiSettings object

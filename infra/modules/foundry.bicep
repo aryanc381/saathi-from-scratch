@@ -1,4 +1,4 @@
-// Azure AI Foundry (AI Services) account with the GPT chat and embedding model deployments.
+// Responsible for the Azure AI Foundry (AI Services) account with the GPT chat and embedding model deployments.
 param name string
 param location string
 param chatDeploymentName string

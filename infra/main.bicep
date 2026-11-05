@@ -1,4 +1,5 @@
-// Saathi infrastructure: deploys every Azure resource the app needs into one resource group.
+// Responsible for wiring all Azure modules together: names, secrets, access and app settings.
+// It deploys every Azure resource Saathi needs into one resource group.
 // Deploy: az deployment group create -g <rg> -f infra/main.bicep -p @infra/parameters.json sqlAdminPassword=... jwtSecret=...
 targetScope = 'resourceGroup'
 
@@ -33,10 +34,14 @@ var planName = '${namePrefix}-plan'
 var apiName = '${namePrefix}-api-${suffix}'
 var webName = '${namePrefix}-web-${suffix}'
 
+// Where the secrets live; App Service settings point at them with Key Vault references.
 var vaultUri = 'https://${vaultName}${environment().suffixes.keyvaultDns}/'
+// The connection string the API uses for SQL. It is stored in Key Vault, never in plain app settings.
 var sqlConnectionString = 'Driver={ODBC Driver 18 for SQL Server};Server=tcp:${sqlServerName}${environment().suffixes.sqlServerHostname},1433;Database=${sqlDatabaseName};Uid=${sqlAdminLogin};Pwd=${sqlAdminPassword};Encrypt=yes;TrustServerCertificate=no;'
+// Built-in Azure role id for 'Key Vault Secrets User'.
 var keyVaultSecretsUserRole = '4633458b-17de-408a-b874-0521c86b0cc7'
 
+// Each module below creates one Azure service.
 module monitor 'modules/monitor.bicep' = {
   name: 'monitor'
   params: { name: namePrefix, location: location }
@@ -107,6 +112,7 @@ resource storageRef 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
   name: storageName
 }
 
+// Stores every secret in Key Vault. Keys are read straight from the resources, so none appear in this repo.
 module keyvault 'modules/keyvault.bicep' = {
   name: 'keyvault'
   params: {
@@ -139,6 +145,7 @@ resource apiSecretsAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   dependsOn: [keyvault]
 }
 
+// Gives both sites their settings. Secrets are Key Vault references, not values.
 module appSettings 'modules/appsettings.bicep' = {
   name: 'appsettings'
   params: {

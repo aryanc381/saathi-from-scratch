@@ -1,4 +1,4 @@
-"""Uploads the policy-clause PDFs to Blob Storage with clause metadata.
+"""Responsible for uploading the policy-clause PDFs to Blob Storage with clause metadata.
 
 Run from the repo root: python data/seed/upload_blob.py
 Needs AZURE_STORAGE_CONNECTION_STRING. The 'policies' container is created by infra/modules/storage.bicep.

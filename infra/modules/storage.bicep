@@ -1,4 +1,4 @@
-// Storage account with the private 'policies' container that holds the policy PDFs.
+// Responsible for the storage account, with the private 'policies' container that holds the policy PDFs.
 param name string
 param location string
 

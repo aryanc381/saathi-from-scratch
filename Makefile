@@ -1,3 +1,4 @@
+# Responsible for the short commands to generate data, deploy Azure and seed it.
 # Load your env first:  set -a; source .env; set +a
 .PHONY: generate deploy-infra seed
 

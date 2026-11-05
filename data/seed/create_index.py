@@ -1,10 +1,10 @@
-"""Creates the Azure AI Search pipeline: index, Blob data source, skillset and indexer.
+"""Responsible for creating the Azure AI Search pipeline: index, Blob data source, skillset and indexer.
 
 Run from the repo root: python data/seed/create_index.py
 Needs AZURE_SEARCH_ENDPOINT, AZURE_SEARCH_ADMIN_KEY, AZURE_SEARCH_INDEX_NAME, AZURE_STORAGE_CONNECTION_STRING,
 AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY and AZURE_OPENAI_EMBED_DEPLOYMENT.
 
-Flow: PDFs in Blob -> indexer (images normalized) -> skillset (OCR, merge, split, embed) -> one index row per chunk.
+Flow: PDFs in Blob -> indexer (images normalized) -> skillset (OCR, merge, split, entities, embed) -> one index row per chunk.
 Every PUT is idempotent, so re-running updates the definitions. Creating the indexer starts a run.
 """
 import os
@@ -25,13 +25,17 @@ def index_definition(name):
     return {
         "name": name,
         "fields": [
+            # chunk_id is the key; index projections need the keyword analyzer on it.
             {"name": "chunk_id", "type": "Edm.String", "key": True, "searchable": True, "analyzer": "keyword"},
+            # parent_id links every chunk back to its source PDF.
             {"name": "parent_id", "type": "Edm.String", "filterable": True},
             {"name": "doc", "type": "Edm.String", "searchable": True, "filterable": True},
             {"name": "clause_id", "type": "Edm.String", "searchable": True, "filterable": True},
             {"name": "version", "type": "Edm.String", "filterable": True},
             {"name": "product", "type": "Edm.String", "filterable": True},
             {"name": "text", "type": "Edm.String", "searchable": True},
+            {"name": "entities", "type": "Collection(Edm.String)", "searchable": True, "filterable": True},
+            # The embedding of the chunk text, used for vector search.
             {"name": "vector", "type": "Collection(Edm.Single)", "searchable": True, "dimensions": EMBED_DIMENSIONS, "vectorSearchProfile": "vector-profile"},
         ],
         "vectorSearch": {
@@ -52,23 +56,32 @@ def data_source_definition(storage_connection_string):
     return {"name": DATA_SOURCE, "type": "azureblob", "credentials": {"connectionString": storage_connection_string}, "container": {"name": CONTAINER}}
 
 
-# OCR for image content, merged into the text, split into chunks, then embedded; each chunk becomes one index row.
+# OCR for image content, merged into the text, split into chunks, then embedded and scanned for amounts and periods; each chunk becomes one index row.
 def skillset_definition(index_name, openai_endpoint, openai_key, embed_deployment):
     return {
         "name": SKILLSET,
         "skills": [
+            # 1. OCR: reads text inside any images found in the PDFs.
             {"@odata.type": "#Microsoft.Skills.Vision.OcrSkill", "context": "/document/normalized_images/*",
              "inputs": [{"name": "image", "source": "/document/normalized_images/*"}],
              "outputs": [{"name": "text", "targetName": "ocr_text"}]},
+            # 2. Merge: puts the OCR text back into the document text.
             {"@odata.type": "#Microsoft.Skills.Text.MergeSkill", "context": "/document",
              "inputs": [{"name": "text", "source": "/document/content"},
                         {"name": "itemsToInsert", "source": "/document/normalized_images/*/ocr_text"},
                         {"name": "offsets", "source": "/document/normalized_images/*/contentOffset"}],
              "outputs": [{"name": "mergedText", "targetName": "merged_text"}]},
+            # 3. Split: cuts the text into chunks of about 2000 characters with a small overlap.
             {"@odata.type": "#Microsoft.Skills.Text.SplitSkill", "context": "/document", "textSplitMode": "pages",
              "maximumPageLength": 2000, "pageOverlapLength": 200,
              "inputs": [{"name": "text", "source": "/document/merged_text"}],
              "outputs": [{"name": "textItems", "targetName": "pages"}]},
+            # 4. Entities: pulls out amounts and periods (for example 'INR 5,00,000' or '36 months') from each chunk.
+            {"@odata.type": "#Microsoft.Skills.Text.V3.EntityRecognitionSkill", "context": "/document/pages/*",
+             "categories": ["Quantity", "DateTime"], "defaultLanguageCode": "en",
+             "inputs": [{"name": "text", "source": "/document/pages/*"}],
+             "outputs": [{"name": "quantities", "targetName": "entities"}]},
+            # 5. Embed: turns each chunk into a vector with the embedding deployment.
             {"@odata.type": "#Microsoft.Skills.Text.AzureOpenAIEmbeddingSkill", "context": "/document/pages/*",
              "resourceUri": openai_endpoint, "apiKey": openai_key, "deploymentId": embed_deployment,
              "modelName": EMBED_MODEL, "dimensions": EMBED_DIMENSIONS,
@@ -76,6 +89,7 @@ def skillset_definition(index_name, openai_endpoint, openai_key, embed_deploymen
              "outputs": [{"name": "embedding", "targetName": "vector"}]},
         ],
         "cognitiveServices": {"@odata.type": "#Microsoft.Azure.Search.CognitiveServicesByKey", "key": openai_key},
+        # Writes one index row per chunk and copies the blob metadata (clause_id, product, version) onto it.
         "indexProjections": {
             "selectors": [{
                 "targetIndexName": index_name,
@@ -84,6 +98,7 @@ def skillset_definition(index_name, openai_endpoint, openai_key, embed_deploymen
                 "mappings": [
                     {"name": "text", "source": "/document/pages/*"},
                     {"name": "vector", "source": "/document/pages/*/vector"},
+                    {"name": "entities", "source": "/document/pages/*/entities"},
                     {"name": "doc", "source": "/document/metadata_storage_name"},
                     {"name": "clause_id", "source": "/document/clause_id"},
                     {"name": "version", "source": "/document/version"},

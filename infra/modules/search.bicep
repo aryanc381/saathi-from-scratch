@@ -1,4 +1,4 @@
-// Azure AI Search (Basic) with the free semantic ranker enabled.
+// Responsible for Azure AI Search (Basic), with the free semantic ranker enabled.
 param name string
 param location string
 

@@ -1,10 +1,10 @@
-"""Generates all synthetic Saathi data: demo CRM rows, ML training CSVs and policy-clause PDFs.
+"""Responsible for generating all synthetic Saathi data: demo CRM rows, ML training CSVs and policy-clause PDFs.
 
 Run from the repo root: python data/generate.py
 Output is deterministic (seed 42). Every name, message and document is synthetic.
 """
 import csv
-import itertools
+import hashlib
 import json
 import math
 import random
@@ -17,10 +17,12 @@ from reportlab.pdfgen import canvas
 
 SEED = 42
 AS_OF = date(2026, 10, 28)
+DEMO_PASSCODE = "saathi-demo"  # shared by every seeded demo agent; synthetic only
 ROOT = Path(__file__).parent
 SEED_DIR = ROOT / "seed"
 DOCS_DIR = ROOT / "docs"
 
+# Demo agents: one supervisor and two agents. `products` limits which customers an agent may see.
 AGENTS = [
     {"agent_id": "A-00", "name": "Priya Shah", "role": "supervisor", "products": ["health", "motor", "term"]},
     {"agent_id": "A-01", "name": "Meera Nair", "role": "agent", "products": ["health", "motor", "term"]},
@@ -70,6 +72,7 @@ CLAUSES = [
     ("RENEWAL-RULE-01", "health", "v1", "Renewal and grace rules", "A policy renews on its renewal date. Within 30 days after the date it is in grace and can still be renewed. After 30 days it is lapsed and needs a new proposal."),
 ]
 
+# Question templates per intent. {product}, {tier}, {tier2} and {thing} are filled with random values.
 INTENT_TEMPLATES = {
     "policy_info": ["What does the {tier} plan cover?", "Does the {product} policy cover {thing}?", "Explain the waiting period for {product} insurance",
                     "What is excluded under the {tier} plan?", "Is {thing} covered for this customer?", "Compare the {tier} and {tier2} plans"],
@@ -87,13 +90,15 @@ INTENT_TEMPLATES = {
               "Tell me a joke", "Okay, got it", "Goodbye", "How are you?",
               "Can you help me?", "Never mind", "Please wait a moment", "Nice to meet you", "See you later"],
 }
+# Values that fill the template slots, plus polite words added around a question for variety.
 PRODUCTS = ["health", "motor", "term"]
 TIERS = ["Silver", "Gold", "Platinum"]
 THINGS = ["surgery", "dental treatment", "a hospital stay", "an accident", "maternity", "a bumper repair", "theft", "a critical illness", "an eye operation"]
-PREFIXES = ["", "Please ", "Quick question: ", "Hey, ", "I need to know: "]
+PREFIXES = ["", "Hi, ", "Quick question: ", "Please help: ", "I need to know: "]
 SUFFIXES = ["", " thanks", " today"]
 
-PER_LABEL = {"train": 167, "dev": 25, "test": 25}
+# Utterances per label for each split.
+TRAIN_SIZE, DEV_SIZE, TEST_SIZE = 167, 25, 25
 
 
 # Writes rows to a JSON file with stable formatting.
@@ -107,6 +112,12 @@ def write_csv(path, columns, rows):
         writer = csv.DictWriter(f, fieldnames=columns)
         writer.writeheader()
         writer.writerows(rows)
+
+
+# Adds the sha256 hash of the shared demo passcode to every agent.
+def build_agents():
+    passcode_hash = hashlib.sha256(DEMO_PASSCODE.encode("utf-8")).hexdigest()
+    return [{**agent, "passcode_hash": passcode_hash} for agent in AGENTS]
 
 
 # Builds the demo CRM tables: agents, customers, policies and interactions.
@@ -123,34 +134,31 @@ def build_crm():
     return customers, policies, interactions
 
 
-# Expands every intent template with slot values and adds polite prefixes and suffixes.
-def expand_utterances(label):
-    seen = set()
-    for template in INTENT_TEMPLATES[label]:
-        for product, tier, tier2, thing in itertools.product(PRODUCTS, TIERS, TIERS, THINGS):
-            if tier == tier2:
-                continue
-            text = template.format(product=product, tier=tier, tier2=tier2, thing=thing)
-            for prefix, suffix in itertools.product(PREFIXES, SUFFIXES):
-                seen.add(prefix + text[0].lower() + text[1:] + suffix if prefix else text + suffix)
-    return sorted(seen)
+# Makes `count` unique utterances for one label by filling templates with random slot values.
+def make_utterances(label, rng, count):
+    utterances = set()
+    # Keep drawing random combinations until enough different sentences exist.
+    while len(utterances) < count:
+        tier, tier2 = rng.sample(TIERS, 2)
+        text = rng.choice(INTENT_TEMPLATES[label]).format(
+            product=rng.choice(PRODUCTS), tier=tier, tier2=tier2, thing=rng.choice(THINGS))
+        utterances.add(rng.choice(PREFIXES) + text + rng.choice(SUFFIXES))
+    return sorted(utterances)
 
 
-# Builds the intent classifier train, dev and test splits with no utterance shared between splits.
+# Builds the intent train, dev and test rows; each utterance lands in exactly one split.
 def build_intent(rng):
-    splits = {name: [] for name in PER_LABEL}
+    train, dev, test = [], [], []
     for label in INTENT_TEMPLATES:
-        pool = expand_utterances(label)
-        need = sum(PER_LABEL.values())
-        assert len(pool) >= need, f"{label} has only {len(pool)} unique utterances"
-        rng.shuffle(pool)
-        start = 0
-        for name, count in PER_LABEL.items():
-            splits[name] += [{"text": t, "label": label} for t in pool[start:start + count]]
-            start += count
-    for rows in splits.values():
+        utterances = make_utterances(label, rng, TRAIN_SIZE + DEV_SIZE + TEST_SIZE)
+        rng.shuffle(utterances)
+        rows = [{"text": text, "label": label} for text in utterances]
+        train += rows[:TRAIN_SIZE]
+        dev += rows[TRAIN_SIZE:TRAIN_SIZE + DEV_SIZE]
+        test += rows[TRAIN_SIZE + DEV_SIZE:]
+    for rows in (train, dev, test):
         rng.shuffle(rows)
-    return splits
+    return {"train": train, "dev": dev, "test": test}
 
 
 # Builds 1200 synthetic renewal rows; the label comes from a noisy logistic rule over the features.
@@ -161,6 +169,7 @@ def build_radar(rng):
         annual_premium_inr = rng.randrange(8000, 120001, 500)
         interaction_count_90d = rng.randint(0, 12)
         days_since_last_interaction = rng.randint(0, 180)
+        # Renewal is likelier with frequent, recent contact and a smaller premium, and unlikelier once the date has passed.
         logit = (0.6 + 0.35 * interaction_count_90d - 0.02 * days_since_last_interaction
                  - 0.000012 * (annual_premium_inr - 40000) - 0.03 * max(-days_to_renewal, 0))
         renewed = int(rng.random() < 1 / (1 + math.exp(-logit)))
@@ -173,6 +182,7 @@ def build_radar(rng):
 def write_clause_pdf(path, clause_id, product, version, title, text):
     pdf = canvas.Canvas(str(path), pagesize=A4, invariant=1)
     pdf.setTitle(title)
+    # y is the height on the page and counts down from the top: title, product line, then the wrapped clause text.
     y = 790
     pdf.setFont("Helvetica-Bold", 14)
     pdf.drawString(60, y, f"Clause {clause_id} ({version})")
@@ -199,17 +209,22 @@ def build_docs():
 
 # Writes every generated file: CRM JSON, ML CSVs and policy PDFs.
 def main():
+    # One seeded random generator keeps every run identical.
     rng = random.Random(SEED)
     SEED_DIR.mkdir(exist_ok=True)
+    # CRM rows go to JSON files for the SQL loader.
     customers, policies, interactions = build_crm()
-    write_json(SEED_DIR / "agents.json", AGENTS)
+    write_json(SEED_DIR / "agents.json", build_agents())
     write_json(SEED_DIR / "customers.json", customers)
     write_json(SEED_DIR / "policies.json", policies)
     write_json(SEED_DIR / "interactions.json", interactions)
+    # Intent classifier data: train, dev and test files.
     for name, rows in build_intent(rng).items():
         write_csv(SEED_DIR / f"intent_{name}.csv", ["text", "label"], rows)
+    # Renewal Radar training data.
     radar_columns = ["customer_id", "days_to_renewal", "annual_premium_inr", "interaction_count_90d", "days_since_last_interaction", "renewed"]
     write_csv(SEED_DIR / "radar.csv", radar_columns, build_radar(rng))
+    # Policy clause PDFs plus the manifest that describes them.
     build_docs()
     print(f"customers={len(customers)} interactions={len(interactions)} clauses={len(CLAUSES)}")
 

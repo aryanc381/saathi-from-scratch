@@ -7,7 +7,8 @@
       "health",
       "motor",
       "term"
-    ]
+    ],
+    "passcode_hash": "ec960eafbe1bd1d9d8d973397b1666f31f2cdcea239988f47e7a36bcf60d9a37"
   },
   {
     "agent_id": "A-01",
@@ -17,7 +18,8 @@
       "health",
       "motor",
       "term"
-    ]
+    ],
+    "passcode_hash": "ec960eafbe1bd1d9d8d973397b1666f31f2cdcea239988f47e7a36bcf60d9a37"
   },
   {
     "agent_id": "A-02",
@@ -26,6 +28,7 @@
     "products": [
       "health",
       "term"
-    ]
+    ],
+    "passcode_hash": "ec960eafbe1bd1d9d8d973397b1666f31f2cdcea239988f47e7a36bcf60d9a37"
   }
 ]

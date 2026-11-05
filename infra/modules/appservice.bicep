@@ -1,4 +1,4 @@
-// One Linux App Service plan hosting the Python API and the .NET UI. Code is zip-deployed, so no containers are involved.
+// Responsible for hosting: one Linux App Service plan hosting the Python API and the .NET UI. Code is zip-deployed, so no containers are involved.
 param planName string
 param apiName string
 param webName string

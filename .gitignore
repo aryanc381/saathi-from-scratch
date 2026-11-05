@@ -1,3 +1,4 @@
+# Responsible for listing files git must never commit.
 __pycache__/
 *.pyc
 .venv/

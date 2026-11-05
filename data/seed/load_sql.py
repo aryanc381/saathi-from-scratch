@@ -1,8 +1,8 @@
-"""Creates the Saathi schema in Azure SQL and loads the demo rows.
+"""Responsible for creating the Saathi schema in Azure SQL and loading the demo rows.
 
 Run from the repo root: python data/seed/load_sql.py
-Needs SQL_CONNECTION_STRING. Meant for a fresh database: it deletes the demo tables before loading,
-so it fails if sessions, turns or drafts already point at those rows.
+Needs SQL_CONNECTION_STRING. Meant for a fresh database: it deletes the demo rows first,
+so it fails if sessions, turns or drafts already point at them.
 """
 import json
 import os
@@ -13,36 +13,41 @@ import pyodbc
 
 SEED_DIR = Path(__file__).parent
 
-# table -> (seed file, columns) in dependency order; deletes run in reverse.
-TABLES = {
-    "agents": ("agents.json", ["agent_id", "name", "role", "products"]),
-    "customers": ("customers.json", ["customer_id", "agent_id", "name", "phone", "language", "consent"]),
-    "policies": ("policies.json", ["policy_id", "customer_id", "product", "tier", "annual_premium_inr", "renewal_date", "status"]),
-    "interactions": ("interactions.json", ["interaction_id", "customer_id", "date", "channel", "text"]),
-}
+
+# Reads one JSON file from the seed folder.
+def read_json(file):
+    return json.loads((SEED_DIR / file).read_text(encoding="utf-8"))
 
 
 # Runs every GO-separated batch in schema.sql.
 def create_schema(cursor):
     script = (SEED_DIR / "schema.sql").read_text(encoding="utf-8")
-    batches = [b.strip() for b in re.split(r"^GO\s*$", script, flags=re.MULTILINE) if b.strip()]
-    for batch in batches:
-        cursor.execute(batch)
+    for batch in re.split(r"^GO\s*$", script, flags=re.MULTILINE):
+        if batch.strip():
+            cursor.execute(batch)
 
 
-# Replaces the demo rows in dependency order.
+# Inserts the given columns of every row into one table.
+def insert_rows(cursor, table, columns, rows):
+    values = [[row[column] for column in columns] for row in rows]
+    marks = ", ".join("?" for _ in columns)
+    cursor.executemany(f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({marks})", values)
+    print(f"{table}: {len(values)} rows")
+
+
+# Deletes the old demo rows, then inserts the new ones, parents before children.
 def load_data(cursor):
-    for table in reversed(TABLES):
+    for table in ["interactions", "policies", "customers", "agents"]:
         cursor.execute(f"DELETE FROM {table}")
-    for table, (file, columns) in TABLES.items():
-        rows = json.loads((SEED_DIR / file).read_text(encoding="utf-8"))
-        for row in rows:
-            if table == "agents":
-                row["products"] = json.dumps(row["products"])
-        values = [[row[c] for c in columns] for row in rows]
-        marks = ", ".join("?" for _ in columns)
-        cursor.executemany(f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({marks})", values)
-        print(f"{table}: {len(values)} rows")
+
+    agents = read_json("agents.json")
+    for agent in agents:
+        agent["products"] = json.dumps(agent["products"])
+
+    insert_rows(cursor, "agents", ["agent_id", "name", "role", "products", "passcode_hash"], agents)
+    insert_rows(cursor, "customers", ["customer_id", "agent_id", "name", "phone", "language", "consent"], read_json("customers.json"))
+    insert_rows(cursor, "policies", ["policy_id", "customer_id", "product", "tier", "annual_premium_inr", "renewal_date", "status"], read_json("policies.json"))
+    insert_rows(cursor, "interactions", ["interaction_id", "customer_id", "date", "channel", "text"], read_json("interactions.json"))
 
 
 # Creates the schema and loads the demo rows in one transaction.
