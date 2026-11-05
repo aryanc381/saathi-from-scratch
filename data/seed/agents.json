@@ -1,0 +1,31 @@
+[
+  {
+    "agent_id": "A-00",
+    "name": "Priya Shah",
+    "role": "supervisor",
+    "products": [
+      "health",
+      "motor",
+      "term"
+    ]
+  },
+  {
+    "agent_id": "A-01",
+    "name": "Meera Nair",
+    "role": "agent",
+    "products": [
+      "health",
+      "motor",
+      "term"
+    ]
+  },
+  {
+    "agent_id": "A-02",
+    "name": "Vikram Rao",
+    "role": "agent",
+    "products": [
+      "health",
+      "term"
+    ]
+  }
+]

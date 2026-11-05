@@ -1,0 +1,56 @@
+[
+  {
+    "policy_id": "P-204",
+    "customer_id": "C-204",
+    "product": "health",
+    "tier": "Silver",
+    "annual_premium_inr": 18000,
+    "renewal_date": "2026-11-12",
+    "status": "ACTIVE"
+  },
+  {
+    "policy_id": "P-311",
+    "customer_id": "C-311",
+    "product": "motor",
+    "tier": "Comprehensive",
+    "annual_premium_inr": 12500,
+    "renewal_date": "2026-11-04",
+    "status": "ACTIVE"
+  },
+  {
+    "policy_id": "P-118",
+    "customer_id": "C-118",
+    "product": "health",
+    "tier": "Gold",
+    "annual_premium_inr": 32000,
+    "renewal_date": "2026-09-27",
+    "status": "ACTIVE"
+  },
+  {
+    "policy_id": "P-450",
+    "customer_id": "C-450",
+    "product": "term",
+    "tier": "Standard",
+    "annual_premium_inr": 24000,
+    "renewal_date": "2026-10-23",
+    "status": "ACTIVE"
+  },
+  {
+    "policy_id": "P-205",
+    "customer_id": "C-205",
+    "product": "health",
+    "tier": "Gold",
+    "annual_premium_inr": 30000,
+    "renewal_date": "2026-11-17",
+    "status": "ACTIVE"
+  },
+  {
+    "policy_id": "P-999",
+    "customer_id": "C-999",
+    "product": "term",
+    "tier": "Standard",
+    "annual_premium_inr": 21000,
+    "renewal_date": "2027-01-26",
+    "status": "CANCELLED"
+  }
+]

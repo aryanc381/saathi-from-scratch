@@ -1,0 +1,151 @@
+text,label
+Please will a claim for surgery affect the renewal? today,renewal
+I need to know: explain the waiting period for term insurance today,policy_info
+Please what is the weather today? thanks,other
+Quick question: never mind thanks,other
+Quick question: what can you do?,other
+"Hey, what is the weather today?",other
+Quick question: does the health policy cover dental treatment? today,policy_info
+"Hey, compare the Platinum and Silver plans thanks",policy_info
+Quick question: can you help me? thanks,other
+How are you? today,other
+"Okay, got it today",other
+Will the motor policy pay for theft?,claim
+Quick question: will a claim for dental treatment affect the renewal? today,renewal
+Will the motor policy pay for an eye operation? thanks,claim
+See you later today,other
+Please how much is the annual premium for the Platinum plan? today,premium
+Please prepare a WhatsApp reminder for the Platinum plan,draft_message
+Quick question: compare the Silver and Gold plans thanks,policy_info
+Quick question: write a message about the health renewal,draft_message
+Will a claim for a hospital stay affect the renewal? today,renewal
+What is excluded under the Silver plan? today,policy_info
+Will the health policy pay for a bumper repair? today,claim
+Does the motor policy cover an accident? today,policy_info
+Please what is the due date for the premium? today,premium
+Please why did the term premium go up? today,premium
+Quick question: why did the motor premium go up? thanks,premium
+Why was the claim for a hospital stay rejected? today,claim
+Draft a message about a critical illness for this customer,draft_message
+Quick question: will the motor policy pay for dental treatment? thanks,claim
+"Hey, write a message about the health renewal thanks",draft_message
+Quick question: tell me a joke,other
+Quick question: does the motor policy cover a bumper repair?,policy_info
+Please what is the premium difference between Gold and Platinum?,premium
+Will the term policy pay for dental treatment? today,claim
+I need to know: compare the Gold and Silver plans thanks,policy_info
+Write a message about the health renewal thanks,draft_message
+I need to know: will a claim for theft affect the renewal? today,renewal
+"Hey, will a claim for a hospital stay affect the renewal? thanks",renewal
+Draft a message about dental treatment for this customer,draft_message
+I need to know: can this customer still renew the health policy? today,renewal
+Quick question: will the motor policy pay for an accident?,claim
+I need to know: can you help me? today,other
+Quick question: does the term policy cover a critical illness? today,policy_info
+"Hey, will a claim for an accident affect the renewal? thanks",renewal
+How many days are left to renew? today,renewal
+Quick question: what is the premium difference between Silver and Gold? thanks,premium
+Why did the term premium go up?,premium
+Quick question: will a claim for an eye operation affect the renewal? today,renewal
+Please draft a message about a hospital stay for this customer,draft_message
+Quick question: will a claim for a bumper repair affect the renewal? thanks,renewal
+"Hey, prepare a WhatsApp reminder for the Platinum plan thanks",draft_message
+Please wait a moment,other
+"Hey, can you help me?",other
+I need to know: will the health policy pay for an eye operation?,claim
+Is this customer in the grace period? thanks,renewal
+I need to know: draft a renewal reminder for this customer today,draft_message
+Quick question: draft a message about a critical illness for this customer today,draft_message
+"Hey, how do I file a claim for dental treatment? today",claim
+"Hey, will the health policy pay for a hospital stay? thanks",claim
+"Hey, will a claim for a bumper repair affect the renewal? thanks",renewal
+Please how much is the annual premium for the Silver plan? today,premium
+I need to know: will the term policy pay for a critical illness? today,claim
+Will a claim for a hospital stay affect the renewal? thanks,renewal
+Will a claim for dental treatment affect the renewal? today,renewal
+I need to know: is an eye operation covered for this customer?,policy_info
+Please will a claim for theft affect the renewal? thanks,renewal
+Please compare the Gold and Silver plans,policy_info
+I need to know: hello,other
+Quick question: why was the claim for a critical illness rejected? today,claim
+I need to know: will the term policy pay for an eye operation? thanks,claim
+"Hey, okay, got it today",other
+"Hey, how do I file a claim for maternity?",claim
+I need to know: is a hospital stay covered for this customer? today,policy_info
+Please what is the premium difference between Silver and Gold? today,premium
+I need to know: can you help me? thanks,other
+I need to know: is a critical illness covered for this customer?,policy_info
+Quick question: good morning today,other
+"Hey, what is excluded under the Platinum plan? thanks",policy_info
+Tell me a joke thanks,other
+Quick question: what is the premium difference between Gold and Platinum? today,premium
+"Hey, is there a discount on the health premium? today",premium
+Draft a message about surgery for this customer thanks,draft_message
+Quick question: will the term policy pay for a bumper repair? today,claim
+Quick question: what is excluded under the Platinum plan? thanks,policy_info
+I need to know: why did the motor premium go up? thanks,premium
+Does the motor policy cover a bumper repair?,policy_info
+I need to know: has the motor policy lapsed? today,renewal
+I need to know: does the health policy cover maternity?,policy_info
+"Hey, when does this policy renew?",renewal
+Quick question: hello,other
+I need to know: draft a message about dental treatment for this customer today,draft_message
+Please draft a message about an eye operation for this customer today,draft_message
+I need to know: does the health policy cover theft?,policy_info
+Please why did the motor premium go up? today,premium
+I need to know: what is the premium difference between Gold and Silver?,premium
+"Hey, why did the health premium go up? today",premium
+Quick question: write a message about the motor renewal today,draft_message
+Please is there a discount on the motor premium? thanks,premium
+Draft a renewal reminder for this customer,draft_message
+I need to know: will a claim for dental treatment affect the renewal?,renewal
+I need to know: draft a message about a critical illness for this customer today,draft_message
+"Hey, draft a message about dental treatment for this customer today",draft_message
+"Hey, has the motor policy lapsed? today",renewal
+"Hey, will the health policy pay for a critical illness?",claim
+Quick question: draft a message about surgery for this customer,draft_message
+Please has the motor policy lapsed?,renewal
+Draft a message about maternity for this customer,draft_message
+"Hey, can this customer still renew the term policy? thanks",renewal
+"Hey, is maternity covered for this customer? today",policy_info
+I need to know: what is the premium difference between Gold and Silver? today,premium
+"Hey, draft a message about an accident for this customer thanks",draft_message
+Why was the claim for surgery rejected? today,claim
+"Please okay, got it today",other
+"Please okay, got it",other
+Will the health policy pay for dental treatment?,claim
+Can the premium be paid in instalments?,premium
+I need to know: how long does a claim take to settle?,claim
+Will the motor policy pay for maternity? thanks,claim
+"Hey, goodbye today",other
+Write a message about the term renewal thanks,draft_message
+I need to know: how much is the annual premium for the Silver plan? today,premium
+"Hey, is there a discount on the term premium?",premium
+"Hey, will a claim for theft affect the renewal?",renewal
+Why was the claim for an eye operation rejected? thanks,claim
+I need to know: why was the claim for maternity rejected?,claim
+"Hey, write a message about the motor renewal today",draft_message
+"Hey, draft a short email about the premium due date",draft_message
+I need to know: what does the Gold plan cover? thanks,policy_info
+"Hey, does the health policy cover a hospital stay?",policy_info
+Quick question: why was the claim for surgery rejected?,claim
+Will the motor policy pay for a critical illness? today,claim
+"Hey, who are you?",other
+Quick question: explain the waiting period for motor insurance thanks,policy_info
+"Hey, does the term policy cover maternity?",policy_info
+I need to know: good morning today,other
+Please draft a message about an accident for this customer thanks,draft_message
+"Hey, when does this policy renew? today",renewal
+Quick question: how much is the annual premium for the Silver plan?,premium
+Quick question: draft a message about an eye operation for this customer today,draft_message
+Please is there a discount on the health premium? today,premium
+What happens if the renewal date is missed? thanks,renewal
+Please why did the term premium go up?,premium
+"Hey, what is the premium difference between Platinum and Silver?",premium
+Please compare the Platinum and Silver plans thanks,policy_info
+"Hey, never mind",other
+I need to know: does the health policy cover dental treatment?,policy_info
+What is the weather today? today,other
+I need to know: how do I file a claim for a hospital stay? today,claim
+Can this customer still renew the motor policy?,renewal
+Quick question: why did the health premium go up? thanks,premium

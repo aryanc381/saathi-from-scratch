@@ -1,0 +1,128 @@
+[
+  {
+    "interaction_id": "I-0001",
+    "customer_id": "C-204",
+    "date": "2026-09-18",
+    "channel": "call",
+    "text": "Asked how the Gold plan differs from Silver."
+  },
+  {
+    "interaction_id": "I-0002",
+    "customer_id": "C-204",
+    "date": "2026-10-10",
+    "channel": "whatsapp",
+    "text": "Said the premium feels high this year."
+  },
+  {
+    "interaction_id": "I-0003",
+    "customer_id": "C-204",
+    "date": "2026-10-24",
+    "channel": "call",
+    "text": "Wants a renewal reminder before the due date."
+  },
+  {
+    "interaction_id": "I-0004",
+    "customer_id": "C-311",
+    "date": "2026-09-03",
+    "channel": "email",
+    "text": "Reported a minor claim for a bumper repair."
+  },
+  {
+    "interaction_id": "I-0005",
+    "customer_id": "C-311",
+    "date": "2026-10-08",
+    "channel": "call",
+    "text": "Asked about the no-claim bonus after the claim."
+  },
+  {
+    "interaction_id": "I-0006",
+    "customer_id": "C-311",
+    "date": "2026-10-22",
+    "channel": "whatsapp",
+    "text": "Asked to renew the motor policy this week."
+  },
+  {
+    "interaction_id": "I-0007",
+    "customer_id": "C-118",
+    "date": "2026-08-19",
+    "channel": "call",
+    "text": "Asked about room rent limits on the Gold plan."
+  },
+  {
+    "interaction_id": "I-0008",
+    "customer_id": "C-118",
+    "date": "2026-09-23",
+    "channel": "whatsapp",
+    "text": "Did not respond to the renewal notice."
+  },
+  {
+    "interaction_id": "I-0009",
+    "customer_id": "C-118",
+    "date": "2026-09-28",
+    "channel": "email",
+    "text": "Opened the renewal email but took no action."
+  },
+  {
+    "interaction_id": "I-0010",
+    "customer_id": "C-450",
+    "date": "2026-09-13",
+    "channel": "call",
+    "text": "Asked about the grace period for the term plan."
+  },
+  {
+    "interaction_id": "I-0011",
+    "customer_id": "C-450",
+    "date": "2026-10-13",
+    "channel": "email",
+    "text": "Asked to pay the premium in two instalments."
+  },
+  {
+    "interaction_id": "I-0012",
+    "customer_id": "C-450",
+    "date": "2026-10-20",
+    "channel": "whatsapp",
+    "text": "Confirmed the nominee details are unchanged."
+  },
+  {
+    "interaction_id": "I-0013",
+    "customer_id": "C-205",
+    "date": "2026-08-29",
+    "channel": "call",
+    "text": "Asked what the Gold plan excludes."
+  },
+  {
+    "interaction_id": "I-0014",
+    "customer_id": "C-205",
+    "date": "2026-10-03",
+    "channel": "whatsapp",
+    "text": "Compared two hospitals for cashless cover."
+  },
+  {
+    "interaction_id": "I-0015",
+    "customer_id": "C-205",
+    "date": "2026-10-18",
+    "channel": "call",
+    "text": "Asked to stop promotional messages."
+  },
+  {
+    "interaction_id": "I-0016",
+    "customer_id": "C-999",
+    "date": "2026-07-30",
+    "channel": "call",
+    "text": "Asked to cancel the term policy."
+  },
+  {
+    "interaction_id": "I-0017",
+    "customer_id": "C-999",
+    "date": "2026-08-09",
+    "channel": "email",
+    "text": "Confirmed the cancellation in writing."
+  },
+  {
+    "interaction_id": "I-0018",
+    "customer_id": "C-999",
+    "date": "2026-08-14",
+    "channel": "whatsapp",
+    "text": "Asked about the refund timeline."
+  }
+]
