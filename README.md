@@ -6,6 +6,34 @@
 
 An AI copilot for insurance agents. The agent picks a customer and asks a question. Saathi answers with **citations** from policy documents, drafts renewal messages, and never sends anything without human approval. Every action is logged.
 
+### What is actually pending
+
+All six phases are built. It has **never run on real Azure**, and no one has run the smoke tests yet.
+
+```mermaid
+flowchart LR
+    B["Built<br/>API, ML, UI, CI/CD"] --> A["1 Create Azure"]
+    A --> D["2 Load data"]
+    D --> M["3 Deploy ML models<br/>can wait"]
+    D --> C["4 Deploy the code"]
+    M --> C
+    C --> S["5 Run the 17 smoke cases"]
+    S --> F["6 Fix what breaks"]
+```
+
+| Guide | Read it to |
+|---|---|
+| [01 Set up the repo](plans/01-setup-the-repo.md) | run Saathi on your machine |
+| [02 Connect to Azure](plans/02-connect-to-azure.md) | deploy it on real Azure, step by step |
+| [03 End-to-end smoke tests](plans/03-e2e-smoke-tests.md) | run the 17 test cases by hand, each with a flow diagram |
+| [04 Testing we have not done](plans/04-testing-not-done.md) | see exactly what is unproven |
+
+Still open:
+- No automated tests exist (the engineer owns testing).
+- SQL, Foundry, AI Search, Azure ML and the Bicep have never run for real.
+- The UI has compiled but never been opened in a browser.
+- The demo passcode `saathi-demo` is public, so do not leave a deployment running unguarded.
+
 ## 2. How does it work?
 
 ```mermaid
@@ -140,7 +168,7 @@ saathi-from-scratch/
 │
 ├── scripts/                      smoke_test.sh (check a deploy), teardown.sh (delete everything)
 ├── public/                       images used in this README
-├── plans/                        the approved plan
+├── plans/                        the approved plan and the four guides (set up, Azure, smoke tests, untested)
 └── .github/workflows/            ci.yml (checks on PRs), cd.yml (deploy on merge)
 ```
 
@@ -153,7 +181,7 @@ saathi-from-scratch/
 | `infra/` | Creates every Azure service from code, so the whole setup can be rebuilt or deleted in one command. |
 | `scripts/` | Two helpers: check that a deployed site works, and delete everything after the demo. |
 | `public/` | Pictures only. |
-| `plans/` | The plan we agreed before writing code. |
+| `plans/` | The plan we agreed before writing code, plus four guides: set up, connect to Azure, smoke tests, and what is untested. |
 | `.github/` | `ci.yml` lints the Python, builds the UI and scans for secrets on every pull request. `cd.yml` deploys to Azure when the api, web or scripts change on `main`. |
 
 ## 6. How to set it up
@@ -233,7 +261,7 @@ Names only live in [`.env.example`](.env.example). Real values stay in Key Vault
 
 | Group | Variables |
 |---|---|
-| App | `APP_ENV`, `JWT_SECRET`, `API_URL` |
+| App | `JWT_SECRET`, `API_URL` (the web UI's address for the API) |
 | Mode (mock or Azure) | `LLM_PROVIDER`, `RETRIEVER`, `ML_PROVIDER` |
 | AI Foundry | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_CHAT_DEPLOYMENT`, `AZURE_OPENAI_EMBED_DEPLOYMENT` |
 | AI Search | `AZURE_SEARCH_ENDPOINT`, `AZURE_SEARCH_ADMIN_KEY`, `AZURE_SEARCH_INDEX_NAME` |
@@ -243,7 +271,7 @@ Names only live in [`.env.example`](.env.example). Real values stay in Key Vault
 | Azure ML scripts | `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `AZURE_ML_WORKSPACE` |
 | Deploy only | `RG`, `SQL_ADMIN_PASSWORD`, plus GitHub secrets `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_API`, `AZURE_WEBAPP_NAME_WEB` |
 
-For local work, set `APP_ENV=local`, a `JWT_SECRET`, a `SQL_CONNECTION_STRING`, and the three mode switches to `mock` / `local`. The AI services (GPT, search, ML) are mocked, but the API always needs a SQL database.
+For local work, set a `JWT_SECRET`, a `SQL_CONNECTION_STRING`, and the three mode switches to `mock` / `local`. The AI services (GPT, search, ML) are mocked, but the API always needs a SQL database.
 
 ## 8. End-to-end smoke tests
 
