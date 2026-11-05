@@ -68,7 +68,42 @@ flowchart LR
 
 Messages are never really sent. All data is fake.
 
-## 5. How to set it up
+## 5. File structure
+
+Folders marked with a phase number are not built yet.
+
+```text
+saathi-from-scratch/
+├── api/        Python backend (phases 2 and 4)
+├── web/        .NET Blazor screens (phase 5)
+├── ml/         Intent classifier and Renewal Radar (phase 3)
+├── data/       Fake data and policy PDFs            (built)
+│   ├── generate.py   makes all the fake data
+│   ├── docs/         policy PDFs
+│   ├── eval/         test questions with known answers
+│   └── seed/         SQL schema and scripts that load Azure
+├── infra/      Bicep files that create Azure         (built)
+├── scripts/    Live smoke test and teardown (phase 6)
+├── docs/       Runbook and cost report (phase 6)
+├── public/     Images used in this README            (built)
+├── plans/      The approved plan                     (built)
+└── .github/    CI and deploy pipelines (phase 6)
+```
+
+| Folder | What it is responsible for |
+|---|---|
+| `api/` | The brain. Checks who is logged in, runs the question through safety, search and GPT, saves drafts and the audit log. |
+| `web/` | What the agent sees. Chat, customer list, drafts, and the supervisor screen. It only shows things; it makes no decisions. |
+| `ml/` | The two predictions: what the agent is asking about (intent), and who is likely to renew (Renewal Radar). |
+| `data/` | The fake customers, policies and policy PDFs, and the scripts that put them into Azure SQL, Blob and Search. |
+| `infra/` | Creates every Azure service from code, so the whole setup can be rebuilt or deleted in one command. |
+| `scripts/` | Small helpers: check that the live site works, and tear everything down. |
+| `docs/` | Notes for people: how to run it and what it costs. |
+| `public/` | Pictures only. |
+| `plans/` | The plan we agreed before writing code. |
+| `.github/` | Runs checks on every pull request and deploys on merge. |
+
+## 6. How to set it up
 
 You need: Python 3.12, an Azure subscription with the Azure CLI, and the ODBC Driver 18 for SQL Server.
 
@@ -91,7 +126,7 @@ Before `make seed`, copy the connection strings and keys from the deployed resou
 
 Running the API and UI comes with phases 2 to 5.
 
-## 6. Environment variables
+## 7. Environment variables
 
 Names only live in [`.env.example`](.env.example). Real values stay in Key Vault or GitHub secrets, because this repo is public.
 
@@ -108,7 +143,7 @@ Names only live in [`.env.example`](.env.example). Real values stay in Key Vault
 
 For local work, set `APP_ENV=local`, a `JWT_SECRET`, and the three mode switches to `mock` / `local`. No Azure needed.
 
-## 7. End-to-end smoke tests
+## 8. End-to-end smoke tests
 
 Run by a person, not by a script. Every demo agent's passcode is `saathi-demo`. Seed: agent 1 owns C-204, C-311, C-205, C-450; agent 2 owns C-118 and C-999; C-205 has no consent.
 
