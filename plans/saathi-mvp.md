@@ -212,6 +212,7 @@ All routes are `#NEW`; none are removed. Every error returns `{"error": {"code",
 Phase 2 notes: `GET /drafts` requires the `status` query parameter. `POST /drafts` takes only `customer_id` until Phase 4 uses `session_id` for LLM context, and until then draft text comes from a fixed template. A supervisor may open any customer. Customer list and detail calls are audited as `customer_viewed`.
 
 Phase 3 and 4 notes:
+- The deployed API app starts with `ML_PROVIDER=local`. After the Azure ML endpoints exist, set `ML_PROVIDER=azure` and the four `INTENT_`/`RADAR_ENDPOINT_` settings on it.
 - Clause ids start with their product (`HEALTH-`, `MOTOR-`, `TERM-`). The product limit is applied in `search.py` after the search returns, before anything reaches the model.
 - The pipeline is plain Python in a fixed order, not Semantic Kernel. `tools.py` defines `search_knowledge_base` with an MCP-style JSON schema, an allowlist and a limit of 3 calls per request; a Semantic Kernel or MCP wrapper can be added later.
 - An agent question with the intent `other` (a greeting) gets a fixed reply and skips search and GPT.
@@ -254,11 +255,10 @@ Decisions: login checks the seeded demo agents' passcode hash and returns a sign
 
 ## 7. Environment variables
 
-The repo is public: `.env.example` lists names only; real values live in Key Vault or GitHub secrets. Local runs need no Azure AI variables because the AI services have mocks. The API always needs a SQL database. Minimum for local: `APP_ENV=local`, `JWT_SECRET`, `SQL_CONNECTION_STRING`, and the three mode switches set to `mock` or `local`.
+The repo is public: `.env.example` lists names only; real values live in Key Vault or GitHub secrets. Local runs need no Azure AI variables because the AI services have mocks. The API always needs a SQL database. Minimum for local: `JWT_SECRET`, `SQL_CONNECTION_STRING`, and the three mode switches set to `mock` or `local`.
 
 | Group | Variable | Purpose |
 |---|---|---|
-| App | `APP_ENV` | `local` or `azure` |
 | App | `JWT_SECRET` | signs login tokens |
 | App | `API_URL` | the UI's backend URL |
 | Mode | `LLM_PROVIDER` | `mock` or `azure` |
@@ -377,15 +377,16 @@ Subagent boundaries: each owns only its folders (listed above) and hands back th
 *Security*
 - Passcodes are unsalted sha256, which is fine for synthetic demo agents but not for real credentials.
 - The audit chain is not keyed, so someone with database write access could rewrite the whole chain consistently. It also cannot detect removal of the newest rows.
-- There is no login rate limit, no per-agent rate limit on `/chat` (each call costs an LLM request), and tokens last 8 hours with no revocation.
-- Prompt-injection detection is a pattern list, a first line of defence next to the grounding check. Azure Search uses the admin key at runtime.
+- `/chat` is limited to 20 questions a minute and draft creation to 5 a minute per agent (429 above that). The counts live in one process and reset on restart. There is no login rate limit, and tokens last 8 hours with no revocation.
+- The demo passcode `saathi-demo` is public, so anyone who can reach a deployed API can log in and use the LLM within those limits. Change the passcode or restrict access before leaving a deployment running.
+- Prompt-injection detection is a pattern list (about 14 patterns), a first line of defence next to the grounding check. Azure Search uses the admin key at runtime.
 
 *Behavior*
-- The grounding check is strict by design. An answer that does not end each sentence with a source tag is blocked, and a draft without the real renewal date is rejected. Real GPT may be refused more often than expected.
+- The grounding check is strict by design. An answer where a sentence has no source tag is blocked, and a draft without the real renewal date is rejected. A tag placed after the full stop is accepted. Real GPT may still be refused more often than expected.
 - The pipeline is plain Python, not Semantic Kernel, and `tools.py` only has the MCP-style schema. Memory keeps the last 6 turns with no rolling summary.
 - `ML_PROVIDER=local` and `LLM_PROVIDER=mock` are stand-ins (word rules, a formula, a canned reply). The mock GPT answers from the first source, so a follow-up repeats the first answer. SQL has no mock.
 - The intent model's F1 of 1.000 is inflated because the synthetic questions share templates. Radar test ROC-AUC is 0.82.
-- A chat asking to "draft a reminder" goes through search and is usually blocked; the agent should use the draft button.
+- A chat asking to "draft a reminder" gets a fixed reply that points to the draft button, with no search and no GPT call.
 - Sending a draft and logging it are two separate commits, so a crash between them leaves a sent draft with no audit row.
 
 *Behavior of the UI*

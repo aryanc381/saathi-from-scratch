@@ -152,10 +152,11 @@ module appSettings 'modules/appsettings.bicep' = {
     apiName: apiName
     webName: webName
     apiSettings: {
-      APP_ENV: 'azure'
       LLM_PROVIDER: 'azure'
       RETRIEVER: 'azure'
-      ML_PROVIDER: 'azure'
+      // Starts as 'local' because the Azure ML endpoints do not exist yet. After ml/azureml/scripts/deploy.py,
+      // set ML_PROVIDER=azure and the four INTENT_/RADAR_ENDPOINT_ settings on the API app.
+      ML_PROVIDER: 'local'
       SCM_DO_BUILD_DURING_DEPLOYMENT: 'true'
       AZURE_OPENAI_ENDPOINT: 'https://${foundryName}.openai.azure.com'
       AZURE_OPENAI_CHAT_DEPLOYMENT: chatDeploymentName
