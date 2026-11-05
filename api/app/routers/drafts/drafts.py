@@ -9,10 +9,12 @@ from app.models.draft import ApproveResult, Draft, DraftCreate, SendResult
 from app.models.errors import ApiError
 from app.repos import customers as customer_repo
 from app.repos import drafts as draft_repo
-from app.services.access import audit, auth
+from app.services.access import audit, auth, limits
 from app.services.drafts import rules, writer
 
 router = APIRouter()
+
+DRAFTS_PER_MINUTE = 5
 
 
 # Returns a draft the agent owns (a supervisor may use any draft), or raises 404 or 403.
@@ -26,9 +28,10 @@ def load_own_draft(db, agent, draft_id):
 
 
 # Creates a PENDING renewal draft for a customer the agent may access. The LLM polishes it and cites any policy rule.
-# req: { customer_id } / res: draft / errors: 400, 401, 403, 404, 409, 503
+# req: { customer_id } / res: draft / errors: 400, 401, 403, 404, 409, 429, 503
 @router.post("/drafts", response_model=Draft, status_code=201)
 def create_draft(body: DraftCreate, agent: CurrentAgent, db: Db, settings: AppSettings):
+    limits.check(agent.agent_id, "draft", DRAFTS_PER_MINUTE, 60)
     customer, policies = auth.load_customer(db, agent, body.customer_id)
     if not policies:
         raise ApiError(409, "no_policy", "This customer has no policy to renew")

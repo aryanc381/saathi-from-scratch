@@ -8,6 +8,11 @@ INJECTION_PATTERNS = [
     r"act as (an? )?(unrestricted|different|new)",
     r"developer mode|jailbreak",
     r"new instructions:",
+    r"forget (all |any |your |the )?(previous |prior |above |earlier )?(instructions|rules|prompts)",
+    r"pretend (to be|you are)",
+    r"from now on,? (you|ignore|act)",
+    r"(override|bypass) (all |the |your )?(rules|instructions|safety|filters)",
+    r"do anything now",
     r"</?(system|assistant)>",
 ]
 SOURCE_TAG = re.compile(r"\[S(\d+)\]")
@@ -34,6 +39,11 @@ def filter_chunks(chunks: list[dict]) -> list[dict]:
 # Splits an answer into sentences. A new line also ends a sentence, so every bullet is checked on its own.
 def split_sentences(text: str) -> list[str]:
     return [sentence for sentence in re.split(r"(?<=[.!?])\s+|\n+", text.strip()) if sentence]
+
+
+# Moves source tags that follow the full stop ("fees. [S1]") in front of it ("fees [S1]."), the way the check expects.
+def normalize_tags(answer: str) -> str:
+    return re.sub(r"([.!?])\s*(\[S\d+\](?:\s*\[S\d+\])*)", r" \2\1", answer)
 
 
 # Returns the numbers in a text without commas, so "5,00,000" and "500000" compare equal.
