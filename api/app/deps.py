@@ -9,7 +9,7 @@ from app.config import Settings, load_settings
 from app.models.auth import Agent
 from app.models.errors import ApiError
 from app.repos.db import Connection, connect
-from app.services import auth
+from app.services.access import auth
 
 
 # Reads the settings once and reuses them.

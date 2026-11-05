@@ -8,7 +8,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.deps import get_settings
 from app.models.errors import ApiError
-from app.routers import audit, auth, customers, drafts, health
+from app.routers import health
+from app.routers.access import audit, auth
+from app.routers.customers import customers
+from app.routers.drafts import drafts
 
 logger = logging.getLogger("saathi")
 

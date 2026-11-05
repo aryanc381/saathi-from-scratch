@@ -5,7 +5,7 @@ from app.deps import Db, Supervisor
 from app.models.audit import AuditEvent, Usage, VerifyResult
 from app.repos import audit as audit_repo
 from app.repos import drafts as draft_repo
-from app.services import audit
+from app.services.access import audit
 
 router = APIRouter()
 

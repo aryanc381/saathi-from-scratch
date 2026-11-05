@@ -9,7 +9,8 @@ from app.models.draft import ApproveResult, Draft, DraftCreate, SendResult
 from app.models.errors import ApiError
 from app.repos import customers as customer_repo
 from app.repos import drafts as draft_repo
-from app.services import audit, auth, policy
+from app.services.access import audit, auth
+from app.services.drafts import rules
 
 router = APIRouter()
 
@@ -32,7 +33,7 @@ def create_draft(body: DraftCreate, agent: CurrentAgent, db: Db):
     if not policies:
         raise ApiError(409, "no_policy", "This customer has no policy to renew")
     draft_id = str(uuid4())
-    text = policy.draft_text(customer, policies[0])  # policies holds only what this agent may see
+    text = rules.draft_text(customer, policies[0])  # policies holds only what this agent may see
     draft_repo.create(db, draft_id, customer["customer_id"], agent.agent_id, text, [])
     audit.log(db, agent.agent_id, "draft_created", {"draft_id": draft_id, "customer_id": customer["customer_id"]})
     return draft_repo.get(db, draft_id)
@@ -63,7 +64,7 @@ def approve_draft(draft_id: str, agent: CurrentAgent, db: Db):
 def send_draft(draft_id: str, agent: CurrentAgent, db: Db):
     draft = load_own_draft(db, agent, draft_id)
     customer = customer_repo.get(db, draft["customer_id"])
-    reason = policy.send_block_reason(draft, customer)
+    reason = rules.send_block_reason(draft, customer)
     if reason == "not_approved":
         raise ApiError(409, "not_approved", "Approve the draft before sending")
     if reason == "consent_missing":
