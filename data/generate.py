@@ -59,6 +59,7 @@ INTERACTIONS = {
 }
 
 # (clause_id, product, version, title, text): one PDF per clause, so each indexed chunk maps to one citable clause.
+# A clause id must start with its product (HEALTH-, MOTOR-, TERM-): the API reads the product from the file name.
 CLAUSES = [
     ("HEALTH-SILVER-01", "health", "v1", "Silver plan: sum insured", "The Silver plan covers hospitalisation up to a sum insured of INR 5,00,000 per policy year, including room, nursing and doctor fees."),
     ("HEALTH-SILVER-02", "health", "v1", "Silver plan: room rent limit", "Room rent under the Silver plan is limited to 1 percent of the sum insured per day. Higher room rent reduces the claim proportionately."),
@@ -72,7 +73,7 @@ CLAUSES = [
     ("TERM-GRACE-01", "term", "v1", "Grace period for premium payment", "A grace period of 30 days applies for annual premiums. Cover continues during the grace period and lapses if the premium is unpaid after it."),
     ("TERM-FREELOOK-01", "term", "v1", "Free-look period", "A new term policy can be cancelled within 30 days of receipt for a refund of the premium, less stamp duty and medical costs."),
     ("TERM-REVIVAL-01", "term", "v1", "Revival of a lapsed policy", "A lapsed term policy can be revived within 24 months of the first unpaid premium by paying all dues with interest and submitting health proof."),
-    ("RENEWAL-RULE-01", "health", "v1", "Renewal and grace rules", "A policy renews on its renewal date. Within 30 days after the date it is in grace and can still be renewed. After 30 days it is lapsed and needs a new proposal."),
+    ("HEALTH-RENEWAL-01", "health", "v1", "Renewal and grace rules", "A policy renews on its renewal date. Within 30 days after the date it is in grace and can still be renewed. After 30 days it is lapsed and needs a new proposal."),
 ]
 
 # Question templates per intent. {product}, {tier}, {tier2} and {thing} are filled with random values.
@@ -199,7 +200,7 @@ def write_clause_pdf(path, clause_id, product, version, title, text):
     pdf.save()
 
 
-# Writes every clause PDF plus manifest.json: upload_blob.py uses it for blob metadata and the local search mock reads the text.
+# Writes every clause PDF plus manifest.json: upload_blob.py reads the file names from it and the local search mock reads the text.
 def build_docs():
     PDF_DIR.mkdir(parents=True, exist_ok=True)
     MANIFEST_DIR.mkdir(parents=True, exist_ok=True)

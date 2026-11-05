@@ -30,9 +30,6 @@ def index_definition(name):
             # parent_id links every chunk back to its source PDF.
             {"name": "parent_id", "type": "Edm.String", "filterable": True},
             {"name": "doc", "type": "Edm.String", "searchable": True, "filterable": True},
-            {"name": "clause_id", "type": "Edm.String", "searchable": True, "filterable": True},
-            {"name": "version", "type": "Edm.String", "filterable": True},
-            {"name": "product", "type": "Edm.String", "filterable": True},
             {"name": "text", "type": "Edm.String", "searchable": True},
             {"name": "entities", "type": "Collection(Edm.String)", "searchable": True, "filterable": True},
             # The embedding of the chunk text, used for vector search.
@@ -89,7 +86,8 @@ def skillset_definition(index_name, openai_endpoint, openai_key, embed_deploymen
              "outputs": [{"name": "embedding", "targetName": "vector"}]},
         ],
         "cognitiveServices": {"@odata.type": "#Microsoft.Azure.Search.CognitiveServicesByKey", "key": openai_key},
-        # Writes one index row per chunk and copies the blob metadata (clause_id, product, version) onto it.
+        # Writes one index row per chunk and copies the file name onto it.
+        # The API reads the clause id and product from that name, and the version from the chunk text.
         "indexProjections": {
             "selectors": [{
                 "targetIndexName": index_name,
@@ -100,9 +98,6 @@ def skillset_definition(index_name, openai_endpoint, openai_key, embed_deploymen
                     {"name": "vector", "source": "/document/pages/*/vector"},
                     {"name": "entities", "source": "/document/pages/*/entities"},
                     {"name": "doc", "source": "/document/metadata_storage_name"},
-                    {"name": "clause_id", "source": "/document/clause_id"},
-                    {"name": "version", "source": "/document/version"},
-                    {"name": "product", "source": "/document/product"},
                 ],
             }],
             "parameters": {"projectionMode": "skipIndexingParentDocuments"},
