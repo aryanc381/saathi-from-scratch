@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from app.deps import AppSettings, Db
 from app.models.auth import LoginRequest, LoginResponse
 from app.models.errors import ApiError
-from app.services import audit, auth
+from app.services.access import audit, auth
 
 router = APIRouter()
 

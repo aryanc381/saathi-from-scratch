@@ -33,7 +33,7 @@ flowchart LR
     P2 --> P4["4. AI pipeline"]
     P3 --> P4
     P4 --> P5["5. Web UI"]
-    P4 --> P6["6. CI/CD + docs"]
+    P4 --> P6["6. CI/CD"]
 ```
 
 | Phase | What |
@@ -43,7 +43,7 @@ flowchart LR
 | 3. ML | Intent classifier and Renewal Radar |
 | 4. AI pipeline | GPT, search, safety checks, chat |
 | 5. Web UI | Agent workspace and supervisor console |
-| 6. CI/CD + docs | Tests on every PR, deploy to Azure |
+| 6. CI/CD | Checks on every PR, deploy to Azure |
 
 The full plan is in [`plans/saathi-mvp.md`](plans/saathi-mvp.md).
 
@@ -70,55 +70,82 @@ Messages are never really sent. All data is fake.
 
 ## 5. File structure
 
-Folders marked with a phase number are not built yet. Inside a folder, files are grouped by format (`json`, `csv`, `sql`, `scripts`, `pdf`, `bicep`).
+Inside a folder, files are grouped by format (`json`, `csv`, `sql`, `scripts`, `pdf`, `bicep`) and the API is grouped by feature.
 
 ```text
 saathi-from-scratch/
 ├── README.md
-├── Makefile                  short commands: generate, deploy-infra, seed
-├── .env.example              every environment variable (names only)
+├── Makefile                      short commands: generate, train, deploy-infra, seed
+├── .env.example                  every environment variable (names only)
 ├── .gitignore
 │
-├── api/                      Python backend (phase 2 built, phase 4 to come)
-├── web/                      .NET Blazor screens (phase 5)
-├── ml/                       Intent classifier and Renewal Radar (phase 3)
+├── api/                          Python backend
+│   ├── requirements.txt
+│   ├── startup.sh                starts the API on Azure
+│   └── app/
+│       ├── main.py               wires the app and the error format
+│       ├── config.py             reads settings from env vars
+│       ├── deps.py               settings, DB connection, logged-in agent
+│       ├── models/               request and response shapes
+│       ├── repos/                all the SQL
+│       ├── routers/              the URLs, grouped by feature
+│       │   ├── health.py
+│       │   ├── access/           login, audit log, usage
+│       │   ├── customers/        customers, Renewal Radar worklist
+│       │   ├── drafts/           renewal drafts
+│       │   └── chat/             questions and sessions
+│       ├── services/             the business logic, grouped by feature
+│       │   ├── access/           login, tokens, who may see what, audit chain
+│       │   ├── customers/        renewal state, radar scoring
+│       │   ├── drafts/           when a draft may be sent, writing the draft
+│       │   ├── chat/             intent, memory, safety checks
+│       │   └── ai/               calls to GPT and AI Search
+│       └── orchestrator/         the question's journey, and the search tool
 │
-├── data/                     fake data and policy PDFs (built)
-│   ├── generate.py           makes all the fake data
-│   ├── requirements.txt      Python packages for the data scripts
+├── web/                          .NET Blazor screens (phase 5, not built yet)
+│
+├── ml/                           the two predictions
+│   ├── requirements.txt
+│   ├── intent/                   what is the agent asking about
+│   ├── radar/                    who is likely to renew
+│   └── azureml/
+│       ├── scripts/              register and deploy the models on Azure ML
+│       └── config/               conda.yml for the endpoints
+│
+├── data/                         fake data and policy PDFs
+│   ├── generate.py               makes all the fake data
+│   ├── requirements.txt
 │   ├── docs/
-│   │   ├── pdf/              13 policy clause PDFs
-│   │   └── json/             manifest.json, describes each PDF
-│   ├── eval/                 gold_questions.json, test questions with known answers
+│   │   ├── pdf/                  13 policy clause PDFs
+│   │   └── json/                 manifest.json, describes each PDF
+│   ├── eval/                     gold_questions.json, questions with known answers
 │   └── seed/
-│       ├── json/             agents, customers, policies, interactions
-│       ├── csv/              intent train/dev/test, radar training rows
-│       ├── sql/              schema.sql, the Azure SQL tables
-│       └── scripts/          load_sql.py, upload_blob.py, create_index.py
+│       ├── json/                 agents, customers, policies, interactions
+│       ├── csv/                  intent train/dev/test, radar training rows
+│       ├── sql/                  schema.sql, the Azure SQL tables
+│       └── scripts/              load_sql.py, upload_blob.py, create_index.py
 │
-├── infra/                    creates Azure from code (built)
+├── infra/                        creates Azure from code
 │   ├── bicep/
-│   │   ├── main.bicep        wires everything together
-│   │   └── modules/          one file per Azure service
+│   │   ├── main.bicep            wires everything together
+│   │   └── modules/              one file per Azure service
 │   └── params/
-│       └── parameters.json   names, model versions, region
+│       └── parameters.json       names, model versions, region
 │
-├── scripts/                  live smoke test and teardown (phase 6)
-├── docs/                     runbook and cost report (phase 6)
-├── public/                   images used in this README (built)
-├── plans/                    the approved plan (built)
-└── .github/                  CI and deploy pipelines (phase 6)
+├── scripts/                      live smoke test and teardown (phase 6, not built yet)
+├── public/                       images used in this README
+├── plans/                        the approved plan
+└── .github/                      CI and deploy pipelines (phase 6, not built yet)
 ```
 
 | Folder | What it is responsible for |
 |---|---|
-| `api/` | The brain. Checks who is logged in, runs the question through safety, search and GPT, saves drafts and the audit log. |
+| `api/` | The brain. Checks who is logged in, runs the question through safety, search and GPT, saves drafts and the audit log. Grouped by feature: access, customers, drafts, chat. |
 | `web/` | What the agent sees. Chat, customer list, drafts, and the supervisor screen. It only shows things; it makes no decisions. |
-| `ml/` | The two predictions: what the agent is asking about (intent), and who is likely to renew (Renewal Radar). |
+| `ml/` | The two predictions: what the agent is asking about (intent), and who is likely to renew (Renewal Radar). Trains them and puts them on Azure ML. |
 | `data/` | The fake customers, policies and policy PDFs, and the scripts that put them into Azure SQL, Blob and Search. |
 | `infra/` | Creates every Azure service from code, so the whole setup can be rebuilt or deleted in one command. |
 | `scripts/` | Small helpers: check that the live site works, and tear everything down. |
-| `docs/` | Notes for people: how to run it and what it costs. |
 | `public/` | Pictures only. |
 | `plans/` | The plan we agreed before writing code. |
 | `.github/` | Runs checks on every pull request and deploys on merge. |
@@ -140,13 +167,24 @@ make deploy-infra           # creates all Azure resources
 make seed                   # loads SQL, uploads PDFs, builds the search index
 ```
 
+### Train and deploy the ML models
+
+```bash
+pip install -r ml/requirements.txt
+make train                  # trains the intent classifier and the Renewal Radar model
+python ml/azureml/scripts/register.py   # needs AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, AZURE_ML_WORKSPACE
+python ml/azureml/scripts/deploy.py     # creates the two endpoints; they cost money while they run
+```
+
+Copy each endpoint's URL and key into `.env` (`INTENT_ENDPOINT_URL`, `RADAR_ENDPOINT_URL`, and their keys) and set `ML_PROVIDER=azure`. Delete the endpoints after the demo.
+
 Set `RG=saathi-from-scratch-rg` in `.env`. This project uses its own resource group, separate from any earlier one.
 
 Before `make seed`, copy the connection strings and keys from the deployed resources into `.env`, and add your IP to the SQL firewall.
 
 ### Run the API
 
-Put `JWT_SECRET` and `SQL_CONNECTION_STRING` in `.env`. The machine also needs the ODBC Driver 18 for SQL Server.
+Put `JWT_SECRET` (32+ characters), `SQL_CONNECTION_STRING` and the three mode switches in `.env`. With `LLM_PROVIDER=mock`, `RETRIEVER=local` and `ML_PROVIDER=local` nothing else is needed. The machine also needs the ODBC Driver 18 for SQL Server.
 
 ```bash
 pip install -r api/requirements.txt
@@ -168,7 +206,8 @@ Names only live in [`.env.example`](.env.example). Real values stay in Key Vault
 | AI Search | `AZURE_SEARCH_ENDPOINT`, `AZURE_SEARCH_ADMIN_KEY`, `AZURE_SEARCH_INDEX_NAME` |
 | SQL | `SQL_CONNECTION_STRING` |
 | Blob | `AZURE_STORAGE_CONNECTION_STRING` |
-| Azure ML | `RADAR_ENDPOINT_URL`, `RADAR_ENDPOINT_KEY`, `INTENT_ENDPOINT_URL`, `INTENT_ENDPOINT_KEY` |
+| Azure ML endpoints | `RADAR_ENDPOINT_URL`, `RADAR_ENDPOINT_KEY`, `INTENT_ENDPOINT_URL`, `INTENT_ENDPOINT_KEY` |
+| Azure ML scripts | `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `AZURE_ML_WORKSPACE` |
 | Deploy only | `RG`, `SQL_ADMIN_PASSWORD`, plus GitHub secrets `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_API`, `AZURE_WEBAPP_NAME_WEB` |
 
 For local work, set `APP_ENV=local`, a `JWT_SECRET`, a `SQL_CONNECTION_STRING`, and the three mode switches to `mock` / `local`. The AI services (GPT, search, ML) are mocked, but the API always needs a SQL database.

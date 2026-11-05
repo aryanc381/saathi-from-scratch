@@ -4,7 +4,8 @@ from fastapi import APIRouter
 from app.deps import CurrentAgent, Db
 from app.models.customer import CustomerDetail, CustomerListItem
 from app.repos import customers as customer_repo
-from app.services import audit, auth, policy
+from app.services.access import audit, auth
+from app.services.customers import renewal
 
 router = APIRouter()
 
@@ -13,18 +14,11 @@ router = APIRouter()
 # req: token / res: [{ customer_id, name, language, consent, renewal_status }] / errors: 401
 @router.get("/customers", response_model=list[CustomerListItem])
 def list_customers(agent: CurrentAgent, db: Db):
-    if agent.role == "supervisor":
-        customers = customer_repo.list_all(db)
-    else:
-        customers = customer_repo.list_by_agent(db, agent.agent_id)
-    # Keep only the customers this agent may see, with the renewal state of the policies they may see.
-    items = []
-    for customer in customers:
-        all_policies = customer_repo.policies_for(db, customer["customer_id"])
-        if auth.can_access(agent, customer, all_policies):
-            visible = auth.visible_policies(agent, all_policies)
-            items.append({**customer, "renewal_status": policy.customer_renewal_status(visible)})
-    return items
+    # Each customer comes with the renewal state of the policies this agent may see.
+    return [
+        {**customer, "renewal_status": renewal.customer_renewal_status(policies)}
+        for customer, policies in auth.visible_customers(db, agent)
+    ]
 
 
 # Returns one customer with their policies and interactions, and audits the view.

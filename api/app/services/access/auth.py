@@ -80,3 +80,17 @@ def load_customer(db: Connection, agent: Agent, customer_id: str) -> tuple[Row, 
     if not can_access(agent, customer, policies):
         raise ApiError(403, "forbidden", "You cannot access this customer")
     return customer, visible_policies(agent, policies)
+
+
+# Returns every customer this agent may see, each with the policies they may see.
+def visible_customers(db: Connection, agent: Agent) -> list[tuple[Row, list[Row]]]:
+    if agent.role == "supervisor":
+        customers = customer_repo.list_all(db)
+    else:
+        customers = customer_repo.list_by_agent(db, agent.agent_id)
+    result = []
+    for customer in customers:
+        policies = customer_repo.policies_for(db, customer["customer_id"])
+        if can_access(agent, customer, policies):
+            result.append((customer, visible_policies(agent, policies)))
+    return result

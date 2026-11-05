@@ -199,7 +199,7 @@ def write_clause_pdf(path, clause_id, product, version, title, text):
     pdf.save()
 
 
-# Writes every clause PDF plus manifest.json, which upload_blob.py uses for blob metadata.
+# Writes every clause PDF plus manifest.json: upload_blob.py uses it for blob metadata and the local search mock reads the text.
 def build_docs():
     PDF_DIR.mkdir(parents=True, exist_ok=True)
     MANIFEST_DIR.mkdir(parents=True, exist_ok=True)
@@ -207,7 +207,7 @@ def build_docs():
     for clause_id, product, version, title, text in CLAUSES:
         file = f"{clause_id.lower()}.pdf"
         write_clause_pdf(PDF_DIR / file, clause_id, product, version, title, text)
-        manifest.append({"file": file, "clause_id": clause_id, "product": product, "version": version, "title": title})
+        manifest.append({"file": file, "clause_id": clause_id, "product": product, "version": version, "title": title, "text": text})
     write_json(MANIFEST_DIR / "manifest.json", manifest)
 
 

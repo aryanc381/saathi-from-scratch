@@ -1,0 +1,12 @@
+# Responsible for the Python packages installed on the Azure ML endpoints. scikit-learn matches ml/requirements.txt,
+# so the saved models load exactly as they were trained.
+name: saathi-ml
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - scikit-learn==1.9.1
+      - joblib==1.6.0
+      - azureml-inference-server-http

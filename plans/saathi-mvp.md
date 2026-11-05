@@ -113,33 +113,25 @@ saathi-from-scratch/
 │   ├── pyproject.toml                 #NEW — ruff config
 │   ├── requirements.txt               #NEW — deps for App Service
 │   ├── startup.sh                     #NEW — uvicorn start command
-│   ├── app/
-│   │   ├── main.py                    #NEW — app factory, router wiring
-│   │   ├── config.py                  #NEW — typed settings, one place
-│   │   ├── deps.py                    #NEW — DI for services, current agent
-│   │   ├── models/                    #NEW — Pydantic shapes: auth, customer, draft, audit, errors
-│   │   ├── routers/
-│   │   │   ├── auth.py                #NEW — POST /auth/login
-│   │   │   ├── chat.py                #NEW — POST /chat, GET /sessions/{id}
-│   │   │   ├── customers.py           #NEW — list/get owned customers
-│   │   │   ├── drafts.py              #NEW — create, approve, send
-│   │   │   ├── audit.py               #NEW — list, verify chain, usage
-│   │   │   ├── radar.py               #NEW — renewal worklist
-│   │   │   └── health.py              #NEW — liveness for smoke test
-│   │   ├── orchestrator/
-│   │   │   ├── pipeline.py            #NEW — Semantic Kernel step order
-│   │   │   └── tools.py               #NEW — MCP tools incl. search_knowledge_base
-│   │   ├── services/
-│   │   │   ├── llm.py                 #NEW — Foundry GPT (+ mock)
-│   │   │   ├── search.py              #NEW — AI Search hybrid + semantic (+ mock)
-│   │   │   ├── intent.py              #NEW — Azure ML intent (+ local fallback)
-│   │   │   ├── radar.py               #NEW — Azure ML radar (+ local fallback)
-│   │   │   ├── memory.py              #NEW — last 6 turns + summary
-│   │   │   ├── safety.py              #NEW — injection filter, grounding check
-│   │   │   ├── policy.py              #NEW — renewal state, draft text, approval + consent gates
-│   │   │   ├── auth.py                #NEW — identity, role, product scope
-│   │   │   └── audit.py               #NEW — hash-chained append-only log
-│   │   └── repos/                     #NEW — SQL access: db helpers, agents, customers, sessions, drafts, audit
+│   └── app/
+│       ├── main.py                    #NEW — app factory, router wiring, error shape
+│       ├── config.py                  #NEW — typed settings, one place
+│       ├── deps.py                    #NEW — settings, DB connection, logged-in agent
+│       ├── models/                    #NEW — Pydantic shapes: errors, auth, customer, draft, citation, audit, chat, radar
+│       ├── repos/                     #NEW — SQL: db helpers, agents, customers, sessions, drafts, audit
+│       ├── routers/
+│       │   ├── health.py              #NEW — GET /health
+│       │   ├── access/                #NEW — auth.py (login), audit.py (log, verify, usage)
+│       │   ├── customers/             #NEW — customers.py, radar.py (worklist)
+│       │   ├── drafts/                #NEW — drafts.py (create, list, approve, send)
+│       │   └── chat/                  #NEW — chat.py (POST /chat, GET /sessions/{id})
+│       ├── services/
+│       │   ├── access/                #NEW — auth.py (identity, tokens, access), audit.py (hash chain)
+│       │   ├── customers/             #NEW — renewal.py (renewal state), radar.py (worklist scoring)
+│       │   ├── drafts/                #NEW — rules.py (send rules), writer.py (LLM-polished draft)
+│       │   ├── chat/                  #NEW — intent.py, memory.py, safety.py
+│       │   └── ai/                    #NEW — client.py (Azure calls), llm.py (Foundry), search.py (AI Search)
+│       └── orchestrator/              #NEW — pipeline.py (step order), tools.py (search_knowledge_base)
 ├── web/
 │   ├── Saathi.Web/
 │   │   ├── Pages/                     #NEW — Workspace, Supervisor
@@ -148,9 +140,12 @@ saathi-from-scratch/
 │   │   ├── Program.cs                 #NEW — DI and config
 │   │   └── appsettings.json           #NEW — API URL
 ├── ml/
-│   ├── intent/                        #NEW — train, score, metrics
-│   ├── radar/                         #NEW — features, train, score
-│   ├── azureml/                       #NEW — register + deploy endpoints
+│   ├── requirements.txt               #NEW — scikit-learn, joblib, azure-ai-ml (pinned to match the endpoints)
+│   ├── intent/                        #NEW — train.py, score.py
+│   ├── radar/                         #NEW — train.py, score.py (features and top factors)
+│   └── azureml/
+│       ├── scripts/                   #NEW — register.py, deploy.py, score_intent.py, score_radar.py
+│       └── config/                    #NEW — conda.yml for the endpoints
 ├── data/
 │   ├── generate.py                    #NEW — seeded synthetic customers
 │   ├── requirements.txt               #NEW — packages for the data scripts
@@ -172,7 +167,6 @@ saathi-from-scratch/
 ├── scripts/                           #NEW — live smoke test, teardown
 ├── public/
 │   └── architecture.png               #REUSED — already committed; README architecture image
-├── docs/                              #NEW — runbook, cost report
 ├── .github/workflows/
 │   ├── ci.yml                         #NEW — PRs to main: lint, tests
 │   └── cd.yml                         #NEW — merge: test, zip deploy, smoke test
@@ -202,6 +196,16 @@ All routes are `#NEW`; none are removed. Every error returns `{"error": {"code",
 | GET | `/usage` | supervisor | none | 200 `{chats, blocked, drafts_by_status}` | 401, 403 |
 
 Phase 2 notes: `GET /drafts` requires the `status` query parameter. `POST /drafts` takes only `customer_id` until Phase 4 uses `session_id` for LLM context, and until then draft text comes from a fixed template. A supervisor may open any customer. Customer list and detail calls are audited as `customer_viewed`.
+
+Phase 3 and 4 notes:
+- The pipeline is plain Python in a fixed order, not Semantic Kernel. `tools.py` defines `search_knowledge_base` with an MCP-style JSON schema, an allowlist and a limit of 3 calls per request; a Semantic Kernel or MCP wrapper can be added later.
+- An agent question with the intent `other` (a greeting) gets a fixed reply and skips search and GPT.
+- A blocked question or answer returns `blocked: true` with a reason and is audited as `chat_blocked`. Blocked turns are not remembered. A failed Azure call is audited as `chat_failed` and returns 503.
+- Memory keeps the last 6 turns. The rolling summary is not generated yet.
+- Drafts: the LLM polishes a fixed message and may cite policy rules. The draft is rejected (503) if the real renewal date is missing from it.
+- `ML_PROVIDER=local` and `LLM_PROVIDER=mock` use small stand-ins (word rules, a formula, a canned reply), so the API runs offline. The trained models are used through the Azure ML endpoints.
+- Azure ML endpoint contract. Intent: `{text}` returns `{label, confidence}`. Radar: `{rows}` returns `{results: [{customer_id, score, top_factors}]}`.
+- The Azure ML scripts need `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP` and `AZURE_ML_WORKSPACE`.
 
 Decisions: login checks the seeded demo agents' passcode hash and returns a signed token (no Entra ID). The supervisor console polls `/drafts`, `/audit` and `/usage` instead of using SignalR. 403 means wrong owner or role, 409 means the draft is in the wrong state, 503 means an Azure dependency failed.
 
@@ -294,7 +298,7 @@ Verification is part of each phase; there is no separate verification phase.
 | Phase 3 — ML | Intent classifier and Radar trained, scoring code, Azure ML deploy scripts | Phase 1 | Scoring code returns the agreed fields; endpoints answer a sample request |
 | Phase 4 — AI pipeline | llm, search, safety, intent/radar clients, orchestrator, MCP tools, chat and radar routers | Phases 2 and 3 | Injection and grounding cases are blocked in the smoke path |
 | Phase 5 — Web UI | Blazor workspace and supervisor console, `ApiClient` | Phase 4 | UI works against the API in the smoke path |
-| Phase 6 — CI/CD + docs | `ci.yml`, `cd.yml`, smoke script, README, runbook, cost report | Phase 4 | CI green on a PR; CD deploys to App Service |
+| Phase 6 — CI/CD | `ci.yml`, `cd.yml`, smoke script, README | Phase 4 | CI green on a PR; CD deploys to App Service |
 
 ## Agent orchestration
 
@@ -317,7 +321,7 @@ flowchart TD
     end
     subgraph W4["Wave 4 - Parallel subagents"]
         P5["Phase 5: Web UI<br/>Subagent: web/"]
-        P6["Phase 6: CI/CD + docs<br/>Subagent: .github, scripts, docs"]
+        P6["Phase 6: CI/CD<br/>Subagent: .github, scripts"]
     end
     SMOKE["Human smoke path"]
 
@@ -341,9 +345,34 @@ Subagent boundaries: each owns only its folders (listed above) and hands back th
 - All data is synthetic; nothing real is stored or sent.
 
 **Risks**
-- Model or ML endpoint quota can fail in a region. Mitigation: fix in the portal and note it in the runbook; every service has a mock so local work continues.
+- Model or ML endpoint quota can fail in a region. Mitigation: fix in the portal and note it in the README; every service has a mock so local work continues.
 - The repo is public. No secrets, keys or real data may be committed.
-- Azure ML endpoints bill while running. Mitigation: teardown script and a cost report after the demo.
+- Azure ML endpoints bill while running. Mitigation: a teardown script, and delete the endpoints after the demo.
+
+**Known limitations** (built so far, phases 1 to 4)
+
+*Not verified yet*
+- Nothing has run against real Azure: SQL, Foundry, AI Search and Azure ML. The Bicep has never been compiled or deployed, and the Azure ML register and deploy scripts are unverified.
+- The AI Search indexer is assumed to expose blob metadata (`clause_id`, `product`, `version`) at `/document/<key>`. If it does not, search results are rejected with a 503.
+- The ODBC Driver 18 for SQL Server must be installed on whatever runs the API. `startup.sh` does not install it, so App Service needs it added (Phase 6).
+- The human E2E smoke path has not been run.
+
+*Security*
+- Passcodes are unsalted sha256, which is fine for synthetic demo agents but not for real credentials.
+- The audit chain is not keyed, so someone with database write access could rewrite the whole chain consistently. It also cannot detect removal of the newest rows.
+- There is no login rate limit, no per-agent rate limit on `/chat` (each call costs an LLM request), and tokens last 8 hours with no revocation.
+- Prompt-injection detection is a pattern list, a first line of defence next to the grounding check. Azure Search uses the admin key at runtime.
+
+*Behavior*
+- The grounding check is strict by design. An answer that does not end each sentence with a source tag is blocked, and a draft without the real renewal date is rejected. Real GPT may be refused more often than expected.
+- The pipeline is plain Python, not Semantic Kernel, and `tools.py` only has the MCP-style schema. Memory keeps the last 6 turns with no rolling summary.
+- `ML_PROVIDER=local` and `LLM_PROVIDER=mock` are stand-ins (word rules, a formula, a canned reply). The mock GPT answers from the first source, so a follow-up repeats the first answer. SQL has no mock.
+- The intent model's F1 of 1.000 is inflated because the synthetic questions share templates. Radar test ROC-AUC is 0.82.
+- A chat asking to "draft a reminder" goes through search and is usually blocked; the agent should use the draft button.
+- Sending a draft and logging it are two separate commits, so a crash between them leaves a sent draft with no audit row.
+
+*Scale*
+- Customer lists run one policy query per customer, `/audit` returns the newest 200 events, and `load_sql.py` only works on a fresh database. Fine at demo scale.
 
 **Compatibility:** greenfield repo, no migration. The schema is created by `schema.sql`.
 
